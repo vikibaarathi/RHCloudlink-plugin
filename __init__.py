@@ -6,13 +6,51 @@ from RHAPI import RHAPI
 import json
 import socket
 
-
 class CloudLink():
+
+    CL_ENDPOINT = "www.google.com"
+    CL_QUALIFYING_CLASS_ID = 1
+    CL_DEFAULT_PROFILE = 0
+
     def __init__(self,rhapi):
         self._rhapi = rhapi
 
     def register_handlers(self,args):
-        self.mypilots()
+        #self.mypilots()
+        self.getGrouping()
+
+    def getGrouping(self):
+        print("Hello WOrld")
+        db = self._rhapi.db
+        heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
+
+        racechannels = self.getRaceChannels()
+        print(racechannels)
+
+        for heat in heatsinclass:
+            heatname = heat.name
+            heatid = heat.id
+
+    def getRaceChannels(self):
+        db = self._rhapi.db
+        frequencysets = db.frequencysets
+        defaultprofile = frequencysets[self.CL_DEFAULT_PROFILE]
+        frequencies = defaultprofile.frequencies
+        freq = json.loads(frequencies)
+        bands = freq["b"]
+        channels = freq["c"]
+        racechannels = []
+        for i, band in enumerate(bands):
+            racechannel = "0"
+            print(band)
+            if str(band) == 'None':
+                racechannels.insert(i,racechannel)
+            else:
+                channel = channels[i]
+                racechannel = str(band) + str(channel)
+                racechannels.insert(i,racechannel)
+        return racechannels
+
 
     def mypilots(self):
         print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
@@ -54,7 +92,7 @@ class CloudLink():
     def isConnected(self):
         try:
             s = socket.create_connection(
-                ("www.geeksforgeeks.org", 80))
+                (self.CL_ENDPOINT, 80))
             if s is not None:
                 s.close
             return True
