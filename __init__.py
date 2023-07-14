@@ -11,13 +11,11 @@ class CloudLink():
     def __init__(self,rhapi):
         self._rhapi = rhapi
 
-    def mypilots(self):
-        if self.isConnect():
-            print("SYSTEM IS ONLINE")
-        else:
-            print("SYSTEM IS OFFLINE")
+    def register_handlers(self,args):
+        self.mypilots()
 
-        #pilots = self.getPilots(self)
+    def mypilots(self):
+        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
 
         db = self._rhapi.db
         heats = db.heats
@@ -53,7 +51,7 @@ class CloudLink():
             callsign = pilot.callsign
             print(callsign)
 
-    def isConnect(self):
+    def isConnected(self):
         try:
             s = socket.create_connection(
                 ("www.geeksforgeeks.org", 80))
@@ -64,9 +62,7 @@ class CloudLink():
             pass
         return False
 
-    def register_handlers(self,args):
-        print("Hellor World")
-        self.mypilots()
+
 
 
 def initialize(rhapi):
