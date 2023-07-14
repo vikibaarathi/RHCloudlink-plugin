@@ -25,7 +25,6 @@ class CloudLink():
         heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
 
         racechannels = self.getRaceChannels()
-        print(racechannels)
 
         for heat in heatsinclass:
             heatname = heat.name
@@ -42,7 +41,6 @@ class CloudLink():
         racechannels = []
         for i, band in enumerate(bands):
             racechannel = "0"
-            print(band)
             if str(band) == 'None':
                 racechannels.insert(i,racechannel)
             else:
@@ -106,5 +104,4 @@ class CloudLink():
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
     rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
-
 
