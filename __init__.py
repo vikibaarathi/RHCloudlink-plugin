@@ -1,8 +1,5 @@
-import logging
 from eventmanager import Evt
 from RHAPI import RHAPI
-# from HeatGenerator import HeatGenerator, HeatPlan, HeatPlanSlot, SeedMethod
-# from RHUI import UIField, UIFieldType, UIFieldSelectOption
 import json
 import socket
 
@@ -20,15 +17,41 @@ class CloudLink():
         self.getGrouping()
 
     def getGrouping(self):
-        print("Hello WOrld")
+        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
         db = self._rhapi.db
         heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
 
         racechannels = self.getRaceChannels()
 
+        groups = []
         for heat in heatsinclass:
-            heatname = heat.name
-            heatid = heat.id
+            heatname = str(heat.name)
+            heatid = str(heat.id)
+            thisheat = {
+                "heatname": heatname,
+                "heatid": heatid,
+                "slots":[]
+            }
+            slots = db.slots_by_heat(heatid)
+            for slot in slots:
+                channel = racechannels[slot.node_index]
+                pilotcallsign = "empty"
+                if slot.pilot_id != 0:                  
+                    pilot = db.pilot_by_id(slot.pilot_id)
+                    pilotcallsign = pilot.callsign
+
+
+                thisslot = {
+                    "nodeindex": slot.node_index,
+                    "channel": channel,
+                    "callsign": pilotcallsign
+                }
+
+                thisheat["slots"].append(thisslot)
+
+            groups.append(thisheat)
+
+        print(groups)
 
     def getRaceChannels(self):
         db = self._rhapi.db
@@ -49,44 +72,6 @@ class CloudLink():
                 racechannels.insert(i,racechannel)
         return racechannels
 
-
-    def mypilots(self):
-        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
-
-        db = self._rhapi.db
-        heats = db.heats
-        slots = db.slots
-        frequencysets = db.frequencysets
-        defaultprofile = frequencysets[0]
-        frequencies = defaultprofile.frequencies
-        freq = json.loads(frequencies)
-        bands = freq["b"]
-        channels = freq["c"]
-        print(bands)
-        for heat in heats:
-            print(heat.id)
-            print("****")
-
-        for slot in slots:
-            id = slot.id
-            heatid = slot.heat_id
-            node = slot.node_index
-            pilot = db.pilot_by_id(slot.pilot_id)
-            pilotid = str(slot.pilot_id)
-            
-            freq = str(bands[node]) + str(channels[node])
-            print("Heat:" + str(heatid) + "node: " + str(node) + "Frequency: " + freq + "pilot:" + pilotid)
-
-
-
-    def getPilots(self):
-        print("Getting Pilot")
-        db = self._rhapi.db
-        pilots = db.pilots
-        for pilot in pilots:
-            callsign = pilot.callsign
-            print(callsign)
-
     def isConnected(self):
         try:
             s = socket.create_connection(
@@ -97,9 +82,6 @@ class CloudLink():
         except OSError:
             pass
         return False
-
-
-
 
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
