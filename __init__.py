@@ -13,45 +13,68 @@ class CloudLink():
         self._rhapi = rhapi
 
     def register_handlers(self,args):
-        #self.mypilots()
         self.getGrouping()
+
+    def send_individual_heat(self,args):
+        self.getSingleGroup(args)
+
+    def getSingleGroup(self,args):
+        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
+        db = self._rhapi.db
+        heat = db.heat_by_id(args["heat_id"])
+
+        groups = []
+
+        thisheat = self.getGroupingDetails(heat,db)
+        groups.append(thisheat)
+
+        results = json.dumps(groups)
+        print(results)
 
     def getGrouping(self):
         print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
         db = self._rhapi.db
         heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
 
-        racechannels = self.getRaceChannels()
-
         groups = []
         for heat in heatsinclass:
-            heatname = str(heat.name)
-            heatid = str(heat.id)
-            thisheat = {
-                "heatname": heatname,
-                "heatid": heatid,
-                "slots":[]
-            }
-            slots = db.slots_by_heat(heatid)
-            for slot in slots:
-                channel = racechannels[slot.node_index]
-                pilotcallsign = "empty"
-                if slot.pilot_id != 0:                  
-                    pilot = db.pilot_by_id(slot.pilot_id)
-                    pilotcallsign = pilot.callsign
-
-
-                thisslot = {
-                    "nodeindex": slot.node_index,
-                    "channel": channel,
-                    "callsign": pilotcallsign
-                }
-
-                thisheat["slots"].append(thisslot)
-
+            thisheat = self.getGroupingDetails(heat,db)
             groups.append(thisheat)
 
-        print(groups)
+        results = json.dumps(groups)
+        print(results)
+
+
+    def getGroupingDetails(self, heatobj, db):
+        heatname = str(heatobj.name)
+        heatid = str(heatobj.id)
+        racechannels = self.getRaceChannels()
+        thisheat = {
+            "heatname": heatname,
+            "heatid": heatid,
+            "slots":[]
+        }
+        slots = db.slots_by_heat(heatid)
+        for slot in slots:
+            channel = racechannels[slot.node_index]
+            pilotcallsign = "empty"
+            if slot.pilot_id != 0:                  
+                pilot = db.pilot_by_id(slot.pilot_id)
+                pilotcallsign = pilot.callsign
+
+
+            thisslot = {
+                "nodeindex": slot.node_index,
+                "channel": channel,
+                "callsign": pilotcallsign
+            }
+
+            thisheat["slots"].append(thisslot)
+
+        return thisheat
+
+
+
 
     def getRaceChannels(self):
         db = self._rhapi.db
@@ -86,4 +109,5 @@ class CloudLink():
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
     rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
+    rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
 
