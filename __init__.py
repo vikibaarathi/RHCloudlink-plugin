@@ -48,8 +48,12 @@ class CloudLink():
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
+        heatclassid = str(heatobj.class_id)
         racechannels = self.getRaceChannels()
+
+
         thisheat = {
+            "classid": heatclassid,
             "heatname": heatname,
             "heatid": heatid,
             "slots":[]
@@ -72,8 +76,6 @@ class CloudLink():
             thisheat["slots"].append(thisslot)
 
         return thisheat
-
-
 
 
     def getRaceChannels(self):
