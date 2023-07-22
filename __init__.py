@@ -12,9 +12,6 @@ class CloudLink():
         self._rhapi = rhapi
 
     def send_individual_heat(self,args):
-        self.getSingleGroup(args)
-
-    def getSingleGroup(self,args):
         db = self._rhapi.db
         heat = db.heat_by_id(args["heat_id"])
 
