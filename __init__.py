@@ -28,11 +28,13 @@ class CloudLink():
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
         heatclassid = str(heatobj.class_id)
+        heatclassname = self.getClassName(heatclassid,db)
         racechannels = self.getRaceChannels()
 
         thisheat = {
             "eventid": self.CL_EVENT_ID,
             "classid": heatclassid,
+            "classname":heatclassname,
             "heatid": heatid,
             "heatname": heatname,
             "slots":[]
@@ -55,6 +57,11 @@ class CloudLink():
             thisheat["slots"].append(thisslot)
 
         return thisheat
+
+    def getClassName(self, classid, db):
+        thisclass = db.raceclass_by_id(classid)
+        return thisclass.name
+
 
 
     def getRaceChannels(self):
