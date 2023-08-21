@@ -2,16 +2,26 @@ from eventmanager import Evt
 from RHAPI import RHAPI
 import json
 import socket
+import requests
 
 class CloudLink():
 
+    CL_ENDPOINT = "www.google.com"
+    CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/slots"
+    CL_QUALIFYING_CLASS_ID = 1
     CL_DEFAULT_PROFILE = 0
-    CL_EVENT_ID = "VK091233"
 
     def __init__(self,rhapi):
         self._rhapi = rhapi
 
+    def register_handlers(self,args):
+        self.getGrouping()
+
     def send_individual_heat(self,args):
+        self.getSingleGroup(args)
+
+    def getSingleGroup(self,args):
+        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
         db = self._rhapi.db
         heat = db.heat_by_id(args["heat_id"])
 
@@ -20,23 +30,51 @@ class CloudLink():
         thisheat = self.getGroupingDetails(heat,db)
         groups.append(thisheat)
 
-        results = json.dumps(groups)
-        #Final payload
+        payload = {
+            "eventid":"vk005",
+            "privatekey": "8454122",
+            "heats": groups
+        }
+
+        results = json.dumps(payload)
+        x = requests.post(self.CL_API_ENDPOINT, json = payload)
+        # print(x.text)
+
+        # print(results)
+
+    def getGrouping(self):
+        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
+        db = self._rhapi.db
+        heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
+
+        groups = []
+        for heat in heatsinclass:
+            thisheat = self.getGroupingDetails(heat,db)
+            groups.append(thisheat)
+
+
+
+        payload = {
+            "eventid":"vk001",
+            "privatekey": "8454122",
+            "heats": groups
+        }
+
+        results = json.dumps(payload)
         print(results)
 
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
         heatclassid = str(heatobj.class_id)
-        heatclassname = self.getClassName(heatclassid,db)
         racechannels = self.getRaceChannels()
 
+
         thisheat = {
-            "eventid": self.CL_EVENT_ID,
             "classid": heatclassid,
-            "classname":heatclassname,
-            "heatid": heatid,
+            "classname": "unsupported",
             "heatname": heatname,
+            "heatid": heatid,
             "slots":[]
         }
         slots = db.slots_by_heat(heatid)
@@ -58,11 +96,6 @@ class CloudLink():
 
         return thisheat
 
-    def getClassName(self, classid, db):
-        thisclass = db.raceclass_by_id(classid)
-        return thisclass.name
-
-
 
     def getRaceChannels(self):
         db = self._rhapi.db
@@ -83,7 +116,19 @@ class CloudLink():
                 racechannels.insert(i,racechannel)
         return racechannels
 
+    def isConnected(self):
+        try:
+            s = socket.create_connection(
+                (self.CL_ENDPOINT, 80))
+            if s is not None:
+                s.close
+            return True
+        except OSError:
+            pass
+        return False
+
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
+    rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
 
