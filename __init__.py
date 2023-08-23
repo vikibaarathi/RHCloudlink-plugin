@@ -20,6 +20,26 @@ class CloudLink():
     def send_individual_heat(self,args):
         self.getSingleGroup(args)
 
+    def send_qualifying_results(self,args):
+        print("Race Saved")
+        db = self._rhapi.db
+        fullresults = db.raceclass_results(1)
+        #print(fullresults)
+        threeconst = fullresults["by_consecutives"]
+        #print(threeconst)
+        for rank in threeconst:
+            pilot = {
+                "pilot_id": rank["pilot_id"],
+                "callsign": rank["callsign"],
+                "position": rank["position"],
+                "consecutives": rank["consecutives"],
+                "consecutives_base" : rank["consecutives_base"]
+            }
+            print(pilot)
+
+       
+        
+
     def getSingleGroup(self,args):
         print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
         db = self._rhapi.db
@@ -131,4 +151,7 @@ def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
     rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
+    rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
+    rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
+    
 
