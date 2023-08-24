@@ -8,6 +8,7 @@ class CloudLink():
 
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/slots"
+    CL_API_ENDPOINT_RESULTS = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/results"
     CL_QUALIFYING_CLASS_ID = 1
     CL_DEFAULT_PROFILE = 0
 
@@ -26,6 +27,7 @@ class CloudLink():
         fullresults = db.raceclass_results(1)
         #print(fullresults)
         threeconst = fullresults["by_consecutives"]
+        resultpayload = []
         #print(threeconst)
         for rank in threeconst:
             pilot = {
@@ -35,7 +37,19 @@ class CloudLink():
                 "consecutives": rank["consecutives"],
                 "consecutives_base" : rank["consecutives_base"]
             }
-            print(pilot)
+            resultpayload.append(pilot)
+
+        payload = {
+            "eventid":"vk001",
+            "privatekey": "8454122",
+            "ranks": resultpayload
+        }
+
+        results = json.dumps(payload)
+        #send to cloud
+        x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
+        print(results)
+
 
        
         
