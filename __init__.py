@@ -8,6 +8,7 @@ class CloudLink():
 
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/slots"
+    CL_API_ENDPOINT_RESULTS = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/results"
     CL_QUALIFYING_CLASS_ID = 1
     CL_DEFAULT_PROFILE = 0
 
@@ -19,6 +20,39 @@ class CloudLink():
 
     def send_individual_heat(self,args):
         self.getSingleGroup(args)
+
+    def send_qualifying_results(self,args):
+        print("Race Saved")
+        db = self._rhapi.db
+        fullresults = db.raceclass_results(1)
+        #print(fullresults)
+        threeconst = fullresults["by_consecutives"]
+        resultpayload = []
+        #print(threeconst)
+        for rank in threeconst:
+            pilot = {
+                "pilot_id": rank["pilot_id"],
+                "callsign": rank["callsign"],
+                "position": rank["position"],
+                "consecutives": rank["consecutives"],
+                "consecutives_base" : rank["consecutives_base"]
+            }
+            resultpayload.append(pilot)
+
+        payload = {
+            "eventid":"vk001",
+            "privatekey": "8454122",
+            "ranks": resultpayload
+        }
+
+        results = json.dumps(payload)
+        #send to cloud
+        x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
+        print(results)
+
+
+       
+        
 
     def getSingleGroup(self,args):
         print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
@@ -131,4 +165,7 @@ def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
     rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
+    rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
+    rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
+    
 
