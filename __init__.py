@@ -9,101 +9,79 @@ class CloudLink():
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/slots"
     CL_API_ENDPOINT_RESULTS = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/results"
+    CL_EVENT_ID = 'PH2405'
     CL_QUALIFYING_CLASS_ID = 1
+    CL_DOUBLE_ELIM_CLASS_ID = 2
     CL_DEFAULT_PROFILE = 0
 
     def __init__(self,rhapi):
         self._rhapi = rhapi
 
     def register_handlers(self,args):
-        self.getGrouping()
+        print("Cloud-Link plugin ready to go.")
 
     def send_individual_heat(self,args):
-        self.getSingleGroup(args)
+        if self.isConnected():
+            print("Sending heat to cloud")
+            db = self._rhapi.db
+            heat = db.heat_by_id(args["heat_id"])
 
-    def send_qualifying_results(self,args):
-        print("Race Saved")
-        db = self._rhapi.db
-        fullresults = db.raceclass_results(1)
-        #print(fullresults)
-        threeconst = fullresults["by_consecutives"]
-        resultpayload = []
-        #print(threeconst)
-        for rank in threeconst:
-            pilot = {
-                "pilot_id": rank["pilot_id"],
-                "callsign": rank["callsign"],
-                "position": rank["position"],
-                "consecutives": rank["consecutives"],
-                "consecutives_base" : rank["consecutives_base"]
-            }
-            resultpayload.append(pilot)
+            groups = []
 
-        payload = {
-            "eventid":"vk001",
-            "privatekey": "8454122",
-            "ranks": resultpayload
-        }
-
-        results = json.dumps(payload)
-        #send to cloud
-        x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
-        print(results)
-
-
-       
-        
-
-    def getSingleGroup(self,args):
-        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
-        db = self._rhapi.db
-        heat = db.heat_by_id(args["heat_id"])
-
-        groups = []
-
-        thisheat = self.getGroupingDetails(heat,db)
-        groups.append(thisheat)
-
-        payload = {
-            "eventid":"vk005",
-            "privatekey": "8454122",
-            "heats": groups
-        }
-
-        results = json.dumps(payload)
-        x = requests.post(self.CL_API_ENDPOINT, json = payload)
-        # print(x.text)
-
-        # print(results)
-
-    def getGrouping(self):
-        print("SYSTEM IS ONLINE") if self.isConnected() else print("SYSTEM IS OFFLINE")
-        db = self._rhapi.db
-        heatsinclass = db.heats_by_class(self.CL_QUALIFYING_CLASS_ID)
-
-        groups = []
-        for heat in heatsinclass:
             thisheat = self.getGroupingDetails(heat,db)
             groups.append(thisheat)
 
+            payload = {
+                "eventid":"vk005",
+                "privatekey": "8454122",
+                "heats": groups
+            }
 
+            # results = json.dumps(payload)
+            # print(results)
+            x = requests.post(self.CL_API_ENDPOINT, json = payload)
+        else:
+            print("No internet connection available")
 
-        payload = {
-            "eventid":"vk001",
-            "privatekey": "8454122",
-            "heats": groups
-        }
+    def send_qualifying_results(self,args):
+        if self.isConnected():
+            print("Sending results to cloud")
+            db = self._rhapi.db
+            fullresults = db.raceclass_results(1)
 
-        results = json.dumps(payload)
-        print(results)
+            threeconst = fullresults["by_consecutives"]
+            resultpayload = []
+
+            for rank in threeconst:
+
+                pilot = {
+                    "pilot_id": rank["pilot_id"],
+                    "callsign": rank["callsign"],
+                    "position": rank["position"],
+                    "consecutives": rank["consecutives"],
+                    "consecutives_base" : rank["consecutives_base"]
+                }
+                resultpayload.append(pilot)
+
+            payload = {
+                "eventid":self.CL_EVENT_ID,
+                "privatekey": "8454122",
+                "ranks": resultpayload
+            }
+
+            results = json.dumps(payload)
+            #send to cloud
+            x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
+            print("Results sent to cloud")
+
+        else:
+            print("No internet connection available")
 
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
         heatclassid = str(heatobj.class_id)
         racechannels = self.getRaceChannels()
-
-
         thisheat = {
             "classid": heatclassid,
             "classname": "unsupported",
@@ -167,5 +145,3 @@ def initialize(rhapi):
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
     rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
     rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
-    
-
