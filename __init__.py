@@ -32,7 +32,7 @@ class CloudLink():
             groups.append(thisheat)
 
             payload = {
-                "eventid":"vk005",
+                "eventid": self.CL_EVENT_ID,
                 "privatekey": "8454122",
                 "heats": groups
             }
