@@ -3,6 +3,9 @@ from RHAPI import RHAPI
 import json
 import socket
 import requests
+import logging
+import RHUtils
+from RHUI import UIField, UIFieldType, UIFieldSelectOption
 
 class CloudLink():
 
@@ -19,6 +22,36 @@ class CloudLink():
 
     def register_handlers(self,args):
         print("Cloud-Link plugin ready to go.")
+        self.init_ui(args)
+        
+
+    def init_ui(self,args):
+        ui = self._rhapi.ui
+        fields = self._rhapi.fields
+        #Register the panel for Cloud Link
+        ui.register_panel("cloud-link", "Cloud Link", "settings")
+        
+        #Register all the text input for Cloud Link
+        cl_enableplugin = UIField(name = 'lc==cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloud Link server.")
+        fields.register_option(cl_enableplugin, "cloud-link")
+        cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at cloudlink.com")
+        cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Authentication key provided by Cloud Link during event registration.")
+        cl_qualifyingid = UIField(name = 'cl-qualifying-id', label = 'Qualifying Class ID', field_type = UIFieldType.BASIC_INT, desc = "The class which is used for qualifying. Example: 1")
+        cl_ladderid = UIField(name = 'cl-ladder-id', label = 'Ladder Event Class ID', field_type = UIFieldType.BASIC_INT, desc = "Auto generated heats for ladder main event.")
+        cl_doubleelimid = UIField(name = 'cl-double-elim-id', label = 'MultiGP Double Elimination Class ID', field_type = UIFieldType.BASIC_INT, desc = "Auto generated heats for MultiGP double elimination")
+        fields.register_option(cl_eventid, "cloud-link")
+        fields.register_option(cl_eventkey, "cloud-link")
+        fields.register_option(cl_qualifyingid, "cloud-link")
+        fields.register_option(cl_ladderid, "cloud-link")
+        fields.register_option(cl_doubleelimid, "cloud-link")
+
+        ui.register_quickbutton("cloud-link", "send-all-button", "Sync All", self.ui_button)
+        ui.register_quickbutton("cloud-link", "remove-all-button", "Remove All", self.ui_button)
+
+
+
+    def ui_button(self,args):
+        print("Hello World")
 
     def send_individual_heat(self,args):
         if self.isConnected():
