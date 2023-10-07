@@ -20,6 +20,9 @@ class CloudLink():
     def __init__(self,rhapi):
         self._rhapi = rhapi
 
+    def listen_generator(self,args):
+        print(args)
+
     def register_handlers(self,args):
         print("Cloud-Link plugin ready to go.")
         self.init_ui(args)
@@ -32,18 +35,14 @@ class CloudLink():
         ui.register_panel("cloud-link", "Cloud Link", "settings")
         
         #Register all the text input for Cloud Link
-        cl_enableplugin = UIField(name = 'lc==cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloud Link server.")
+        cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloud Link server.")
         fields.register_option(cl_enableplugin, "cloud-link")
         cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at cloudlink.com")
         cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Authentication key provided by Cloud Link during event registration.")
-        cl_qualifyingid = UIField(name = 'cl-qualifying-id', label = 'Qualifying Class ID', field_type = UIFieldType.BASIC_INT, desc = "The class which is used for qualifying. Example: 1")
-        cl_ladderid = UIField(name = 'cl-ladder-id', label = 'Ladder Event Class ID', field_type = UIFieldType.BASIC_INT, desc = "Auto generated heats for ladder main event.")
-        cl_doubleelimid = UIField(name = 'cl-double-elim-id', label = 'MultiGP Double Elimination Class ID', field_type = UIFieldType.BASIC_INT, desc = "Auto generated heats for MultiGP double elimination")
+
         fields.register_option(cl_eventid, "cloud-link")
         fields.register_option(cl_eventkey, "cloud-link")
-        fields.register_option(cl_qualifyingid, "cloud-link")
-        fields.register_option(cl_ladderid, "cloud-link")
-        fields.register_option(cl_doubleelimid, "cloud-link")
+
 
         ui.register_quickbutton("cloud-link", "send-all-button", "Sync All", self.ui_button)
         ui.register_quickbutton("cloud-link", "remove-all-button", "Remove All", self.ui_button)
@@ -54,19 +53,21 @@ class CloudLink():
         print("Hello World")
 
     def send_individual_heat(self,args):
-        if self.isConnected():
+
+        keys = self.getEventKeys()
+
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
             print("Sending heat to cloud")
             db = self._rhapi.db
             heat = db.heat_by_id(args["heat_id"])
 
             groups = []
-
             thisheat = self.getGroupingDetails(heat,db)
             groups.append(thisheat)
 
             payload = {
-                "eventid": self.CL_EVENT_ID,
-                "privatekey": "8454122",
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"],
                 "heats": groups
             }
 
@@ -74,35 +75,72 @@ class CloudLink():
             # print(results)
             x = requests.post(self.CL_API_ENDPOINT, json = payload)
         else:
-            print("No internet connection available")
+            print("Cloud-Link Disabled")
 
     def send_qualifying_results(self,args):
-        if self.isConnected():
-            print("Sending results to cloud")
-            db = self._rhapi.db
-            fullresults = db.raceclass_results(1)
+        keys = self.getEventKeys()
+        raceid = args["race_id"]
+        savedracemeta = self._rhapi.db.race_by_id(raceid)
+        classid = savedracemeta.class_id
+        raceclass = self._rhapi.db.raceclass_by_id(classid)
+        classname = raceclass.name
+        ranking = raceclass.ranking
 
-            threeconst = fullresults["by_consecutives"]
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+            print("Sending results to cloud")
+            rankpayload = []
             resultpayload = []
 
-            for rank in threeconst:
+            if ranking:
+                meta = ranking["meta"]
+                method_label = meta["method_label"]
+                ranks = ranking["ranking"]
+                for rank in ranks:
+                    pilot = {
+                        "classid": classid,
+                        "classname": classname,
+                        "pilot_id": rank["pilot_id"],
+                        "callsign": rank["callsign"],
+                        "position": rank["position"],
+                        "heat": rank["heat"],
+                        "method_label": method_label
+
+                    }
+                    rankpayload.append(pilot)     
+
+            db = self._rhapi.db
+            fullresults = db.raceclass_results(classid)
+            meta = fullresults["meta"]
+            primary_leaderboard = meta["primary_leaderboard"]         
+            filteredresults = fullresults[primary_leaderboard]
+
+            for result in filteredresults:
 
                 pilot = {
-                    "pilot_id": rank["pilot_id"],
-                    "callsign": rank["callsign"],
-                    "position": rank["position"],
-                    "consecutives": rank["consecutives"],
-                    "consecutives_base" : rank["consecutives_base"]
+                    "classid": classid,
+                    "classname": classname,
+                    "pilot_id": result["pilot_id"],
+                    "callsign": result["callsign"],
+                    "position": result["position"],
+                    "consecutives": result["consecutives"],
+                    "consecutives_base" : result["consecutives_base"],
+                    "laps": result["laps"],
+                    "total_time": result["total_time"],
+                    "average_lap": result["average_lap"],
+                    "fastest_lap": result["fastest_lap"],
+                    "method_label": primary_leaderboard
                 }
                 resultpayload.append(pilot)
 
             payload = {
-                "eventid":self.CL_EVENT_ID,
-                "privatekey": "8454122",
-                "ranks": resultpayload
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"],
+                "ranks": rankpayload,
+                "results": resultpayload
             }
 
             results = json.dumps(payload)
+            print(results)
             #send to cloud
             x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
             print("Results sent to cloud")
@@ -141,7 +179,6 @@ class CloudLink():
 
         return thisheat
 
-
     def getRaceChannels(self):
         db = self._rhapi.db
         frequencysets = db.frequencysets
@@ -171,6 +208,29 @@ class CloudLink():
         except OSError:
             pass
         return False
+    
+    def isEnabled(self):
+        enabled = self._rhapi.db.option("cl-enable-plugin")
+        
+        print(enabled)
+        if enabled == "1":
+            return True
+        else:
+            return False
+
+    def getEventKeys(self):
+
+        eventid = self._rhapi.db.option("cl-event-id")
+        eventkey = self._rhapi.db.option("cl-event-key")
+        notempty = True if (eventid and eventkey) else False
+        keys = {
+            "notempty": notempty,
+            "eventid": eventid,
+            "eventkey": eventkey
+        }
+        return keys
+
+
 
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
@@ -178,3 +238,4 @@ def initialize(rhapi):
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
     rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
     rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
+    rhapi.events.on(Evt.HEAT_GENERATE, cloudlink.listen_generator)
