@@ -11,18 +11,11 @@ class CloudLink():
 
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod"
-    CL_API_ENDPOINT_RESULTS = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/results"
-    CL_EVENT_ID = 'PH2405'
-    CL_QUALIFYING_CLASS_ID = 1
-    CL_DOUBLE_ELIM_CLASS_ID = 2
     CL_DEFAULT_PROFILE = 0
 
     def __init__(self,rhapi):
         self._rhapi = rhapi
-
-    def listen_generator(self,args):
-        print(args)
-
+        
     def initialize_plugin(self,args):
         print("Cloud-Link plugin ready to go.")
         self.init_ui(args)
@@ -222,15 +215,11 @@ class CloudLink():
             # results = json.dumps(payload)
             # print(results)
             #send to cloud
-            x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
+            x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
             print("Results sent to cloud")
 
         else:
             print("No internet connection available")
-
-
-
-
 
     def isConnected(self):
         try:
@@ -263,8 +252,6 @@ class CloudLink():
             "eventkey": eventkey
         }
         return keys
-
-
 
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
