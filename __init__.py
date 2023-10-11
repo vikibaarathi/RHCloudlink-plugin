@@ -10,7 +10,7 @@ from RHUI import UIField, UIFieldType, UIFieldSelectOption
 class CloudLink():
 
     CL_ENDPOINT = "www.google.com"
-    CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/slots"
+    CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod"
     CL_API_ENDPOINT_RESULTS = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/results"
     CL_EVENT_ID = 'PH2405'
     CL_QUALIFYING_CLASS_ID = 1
@@ -23,11 +23,10 @@ class CloudLink():
     def listen_generator(self,args):
         print(args)
 
-    def register_handlers(self,args):
+    def initialize_plugin(self,args):
         print("Cloud-Link plugin ready to go.")
         self.init_ui(args)
         
-
     def init_ui(self,args):
         ui = self._rhapi.ui
         fields = self._rhapi.fields
@@ -44,13 +43,56 @@ class CloudLink():
         fields.register_option(cl_eventkey, "cloud-link")
 
 
-        ui.register_quickbutton("cloud-link", "send-all-button", "Sync All", self.ui_button)
-        ui.register_quickbutton("cloud-link", "remove-all-button", "Remove All", self.ui_button)
-
-
+        ui.register_quickbutton("cloud-link", "send-all-button", "clear and re-sync", self.ui_button)
 
     def ui_button(self,args):
-        print("Hello World")
+        ui = self._rhapi.ui
+        ui.message_notify("Initializing resyncronization protocol...")
+
+    def class_listener(self,args):
+
+        print(args)
+        keys = self.getEventKeys()
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+            
+            eventname = args["_eventName"]
+            if eventname == "classAdd":
+                classid = args["class_id"]
+                classname = str(classid)
+                brackettype = "none"
+
+            elif eventname == "classAlter":
+                classid = args["class_id"]
+                raceclass = self._rhapi.db.raceclass_by_id(classid)
+                classname = raceclass.name
+                brackettype = "none"
+
+            elif eventname == "heatGenerate":
+                classid = args["output_class_id"]
+                raceclass = self._rhapi.db.raceclass_by_id(classid)
+                if raceclass.name == "":
+                    classname = str(classid)
+                else:
+                    classname = raceclass.name
+                brackettype = args["generator"]         
+
+            payload = {
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"],
+                "classid": classid,
+                "classname": classname,
+                "brackettype": brackettype         
+            }
+
+            print(payload)
+            x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
+        else:
+            print("Cloud-Link Disabled")
+
+    def send_bracket_info(self,args):
+        print(args)
+
+
 
     def send_individual_heat(self,args):
 
@@ -234,8 +276,13 @@ class CloudLink():
 
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
-    rhapi.events.on(Evt.STARTUP, cloudlink.register_handlers)
+    rhapi.events.on(Evt.STARTUP, cloudlink.initialize_plugin)
+    rhapi.events.on(Evt.CLASS_ADD, cloudlink.class_listener)
+    rhapi.events.on(Evt.CLASS_ALTER, cloudlink.class_listener)
+    rhapi.events.on(Evt.HEAT_GENERATE, cloudlink.class_listener)
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
     rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
     rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
-    rhapi.events.on(Evt.HEAT_GENERATE, cloudlink.listen_generator)
+
+
+    
