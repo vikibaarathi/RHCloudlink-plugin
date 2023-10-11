@@ -51,7 +51,6 @@ class CloudLink():
 
     def class_listener(self,args):
 
-        print(args)
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
             
@@ -84,25 +83,17 @@ class CloudLink():
                 "brackettype": brackettype         
             }
 
-            print(payload)
             x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
         else:
             print("Cloud-Link Disabled")
 
-    def send_bracket_info(self,args):
-        print(args)
-
-
-
-    def send_individual_heat(self,args):
+    def heat_listener(self,args):
 
         keys = self.getEventKeys()
-
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            print("Sending heat to cloud")
+
             db = self._rhapi.db
             heat = db.heat_by_id(args["heat_id"])
-
             groups = []
             thisheat = self.getGroupingDetails(heat,db)
             groups.append(thisheat)
@@ -115,21 +106,68 @@ class CloudLink():
 
             # results = json.dumps(payload)
             # print(results)
-            x = requests.post(self.CL_API_ENDPOINT, json = payload)
+            x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
         else:
             print("Cloud-Link Disabled")
 
-    def send_qualifying_results(self,args):
+    def getGroupingDetails(self, heatobj, db):
+        heatname = str(heatobj.name)
+        heatid = str(heatobj.id)
+        heatclassid = str(heatobj.class_id)
+        racechannels = self.getRaceChannels()
+        thisheat = {
+            "classid": heatclassid,
+            "classname": "unsupported",
+            "heatname": heatname,
+            "heatid": heatid,
+            "slots":[]
+        }
+        slots = db.slots_by_heat(heatid)
+        for slot in slots:
+            channel = racechannels[slot.node_index]
+            pilotcallsign = "empty"
+            if slot.pilot_id != 0:                  
+                pilot = db.pilot_by_id(slot.pilot_id)
+                pilotcallsign = pilot.callsign
+
+
+            thisslot = {
+                "nodeindex": slot.node_index,
+                "channel": channel,
+                "callsign": pilotcallsign
+            }
+            thisheat["slots"].append(thisslot)
+        return thisheat
+
+    def getRaceChannels(self):
+        db = self._rhapi.db
+        frequencysets = db.frequencysets
+        defaultprofile = frequencysets[self.CL_DEFAULT_PROFILE]
+        frequencies = defaultprofile.frequencies
+        freq = json.loads(frequencies)
+        bands = freq["b"]
+        channels = freq["c"]
+        racechannels = []
+        for i, band in enumerate(bands):
+            racechannel = "0"
+            if str(band) == 'None':
+                racechannels.insert(i,racechannel)
+            else:
+                channel = channels[i]
+                racechannel = str(band) + str(channel)
+                racechannels.insert(i,racechannel)
+        return racechannels
+
+    def results_listener(self,args):
         keys = self.getEventKeys()
-        raceid = args["race_id"]
-        savedracemeta = self._rhapi.db.race_by_id(raceid)
+        savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
         classid = savedracemeta.class_id
         raceclass = self._rhapi.db.raceclass_by_id(classid)
         classname = raceclass.name
         ranking = raceclass.ranking
 
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            print("Sending results to cloud")
+
             rankpayload = []
             resultpayload = []
 
@@ -181,8 +219,8 @@ class CloudLink():
                 "results": resultpayload
             }
 
-            results = json.dumps(payload)
-            print(results)
+            # results = json.dumps(payload)
+            # print(results)
             #send to cloud
             x = requests.post(self.CL_API_ENDPOINT_RESULTS, json = payload)
             print("Results sent to cloud")
@@ -190,55 +228,9 @@ class CloudLink():
         else:
             print("No internet connection available")
 
-    def getGroupingDetails(self, heatobj, db):
-        heatname = str(heatobj.name)
-        heatid = str(heatobj.id)
-        heatclassid = str(heatobj.class_id)
-        racechannels = self.getRaceChannels()
-        thisheat = {
-            "classid": heatclassid,
-            "classname": "unsupported",
-            "heatname": heatname,
-            "heatid": heatid,
-            "slots":[]
-        }
-        slots = db.slots_by_heat(heatid)
-        for slot in slots:
-            channel = racechannels[slot.node_index]
-            pilotcallsign = "empty"
-            if slot.pilot_id != 0:                  
-                pilot = db.pilot_by_id(slot.pilot_id)
-                pilotcallsign = pilot.callsign
 
 
-            thisslot = {
-                "nodeindex": slot.node_index,
-                "channel": channel,
-                "callsign": pilotcallsign
-            }
 
-            thisheat["slots"].append(thisslot)
-
-        return thisheat
-
-    def getRaceChannels(self):
-        db = self._rhapi.db
-        frequencysets = db.frequencysets
-        defaultprofile = frequencysets[self.CL_DEFAULT_PROFILE]
-        frequencies = defaultprofile.frequencies
-        freq = json.loads(frequencies)
-        bands = freq["b"]
-        channels = freq["c"]
-        racechannels = []
-        for i, band in enumerate(bands):
-            racechannel = "0"
-            if str(band) == 'None':
-                racechannels.insert(i,racechannel)
-            else:
-                channel = channels[i]
-                racechannel = str(band) + str(channel)
-                racechannels.insert(i,racechannel)
-        return racechannels
 
     def isConnected(self):
         try:
@@ -280,9 +272,9 @@ def initialize(rhapi):
     rhapi.events.on(Evt.CLASS_ADD, cloudlink.class_listener)
     rhapi.events.on(Evt.CLASS_ALTER, cloudlink.class_listener)
     rhapi.events.on(Evt.HEAT_GENERATE, cloudlink.class_listener)
-    rhapi.events.on(Evt.HEAT_ALTER, cloudlink.send_individual_heat)
-    rhapi.events.on(Evt.LAPS_SAVE, cloudlink.send_qualifying_results)
-    rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.send_qualifying_results)
+    rhapi.events.on(Evt.HEAT_ALTER, cloudlink.heat_listener)
+    rhapi.events.on(Evt.LAPS_SAVE, cloudlink.results_listener)
+    rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.results_listener)
 
 
     
