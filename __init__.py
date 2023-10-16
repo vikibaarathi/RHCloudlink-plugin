@@ -8,7 +8,7 @@ import RHUtils
 from RHUI import UIField, UIFieldType, UIFieldSelectOption
 
 class CloudLink():
-
+    CL_VERSION = "0.0.0"
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod"
     CL_DEFAULT_PROFILE = 0
@@ -18,6 +18,17 @@ class CloudLink():
         
     def initialize_plugin(self,args):
         print("Cloud-Link plugin ready to go.")
+        x = requests.get('	https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod/healthcheck')
+        respond = x.json()
+        print(respond)
+        if self.CL_VERSION != respond["version"]:
+            if respond["softupgrade"] == True:
+                print("New version of Cloud Link is available. Please consider upgrading.")
+
+            if respond["forceupgrade"] == True:
+                print("New version is required. Cloud Link will turn off now.")
+        
+        
         self.init_ui(args)
         
     def init_ui(self,args):
