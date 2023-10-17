@@ -6,18 +6,31 @@ import requests
 import logging
 import RHUtils
 from RHUI import UIField, UIFieldType, UIFieldSelectOption
-
+logger = logging.getLogger(__name__)
 class CloudLink():
-
+    CL_VERSION = "0.1.0"
     CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod"
     CL_DEFAULT_PROFILE = 0
+    CL_FORCEUPDATE = False
 
     def __init__(self,rhapi):
         self._rhapi = rhapi
         
     def initialize_plugin(self,args):
         print("Cloud-Link plugin ready to go.")
+        x = requests.get(self.CL_API_ENDPOINT+'/healthcheck')
+        respond = x.json()
+        if self.CL_VERSION != respond["version"]:
+            if respond["softupgrade"] == True:
+                logger.warning("New version of Cloud Link is available. Please consider upgrading.")
+ 
+
+            if respond["forceupgrade"] == True:
+                logger.warning("Cloudlink plugin needs to bee updated. ")
+                self.CL_FORCEUPDATE = True
+        
+        
         self.init_ui(args)
         
     def init_ui(self,args):
@@ -236,9 +249,12 @@ class CloudLink():
         enabled = self._rhapi.db.option("cl-enable-plugin")
         
         print(enabled)
-        if enabled == "1":
+        if enabled == "1" and self.CL_FORCEUPDATE == False:
+
             return True
         else:
+            if self.CL_FORCEUPDATE == True:
+                logger.warning("Cloudlink requires a mandatory update. Please update and restart the timer. No results will be synced for now.")
             return False
 
     def getEventKeys(self):
