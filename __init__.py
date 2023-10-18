@@ -8,7 +8,6 @@ from RHUI import UIField, UIFieldType, UIFieldSelectOption
 logger = logging.getLogger(__name__)
 class CloudLink():
     CL_VERSION = "0.1.0"
-    CL_ENDPOINT = "www.google.com"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
     CL_DEFAULT_PROFILE = 0
     CL_FORCEUPDATE = False
@@ -17,18 +16,22 @@ class CloudLink():
         self._rhapi = rhapi
         
     def initialize_plugin(self,args):
-        print("Cloud-Link plugin ready to go.")
-        x = requests.get(self.CL_API_ENDPOINT+'/healthcheck')
-        respond = x.json()
-        if self.CL_VERSION != respond["version"]:
-            if respond["softupgrade"] == True:
-                logger.warning("New version of Cloud Link is available. Please consider upgrading.")
- 
-
-            if respond["forceupgrade"] == True:
-                logger.warning("Cloudlink plugin needs to bee updated. ")
-                self.CL_FORCEUPDATE = True
         
+        keys = self.getEventKeys()
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+            x = requests.get(self.CL_API_ENDPOINT+'/healthcheck')
+            respond = x.json()
+            if self.CL_VERSION != respond["version"]:
+                if respond["softupgrade"] == True:
+                    logger.warning("New version of Cloud Link is available. Please consider upgrading.")
+    
+
+                if respond["forceupgrade"] == True:
+                    logger.warning("Cloudlink plugin needs to bee updated. ")
+                    self.CL_FORCEUPDATE = True
+            logger.info("Cloud-Link plugin ready to go.")
+        else:
+            logger.warning("No internet connection available")
         
         self.init_ui(args)
         
@@ -90,7 +93,7 @@ class CloudLink():
 
             x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
         else:
-            print("Cloud-Link Disabled")
+            logger.warning("Cloud-Link Disabled")
 
     def heat_listener(self,args):
 
@@ -110,10 +113,10 @@ class CloudLink():
             }
 
             # results = json.dumps(payload)
-            # print(results)
+            # logger.warning(results)
             x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
         else:
-            print("Cloud-Link Disabled")
+            logger.warning("Cloud-Link Disabled")
 
     def class_heat_delete(self,args):
         keys = self.getEventKeys()
@@ -247,24 +250,20 @@ class CloudLink():
             }
 
             # results = json.dumps(payload)
-            # print(results)
+            # logger.warning(results)
             #send to cloud
             x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
-            print("Results sent to cloud")
+            logger.info("Results sent to cloud")
 
         else:
-            print("No internet connection available")
+            logger.warning("No internet connection available")
 
     def isConnected(self):
         try:
-            s = socket.create_connection(
-                (self.CL_ENDPOINT, 80))
-            if s is not None:
-                s.close
+            response = requests.get(self.CL_API_ENDPOINT, timeout=5)
             return True
-        except OSError:
-            pass
-        return False
+        except requests.ConnectionError:
+            return False 
     
     def isEnabled(self):
         enabled = self._rhapi.db.option("cl-enable-plugin")
