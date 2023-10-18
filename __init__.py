@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class CloudLink():
     CL_VERSION = "0.1.0"
     CL_ENDPOINT = "www.google.com"
-    CL_API_ENDPOINT = "https://bgj3xgowu8.execute-api.ap-southeast-1.amazonaws.com/prod"
+    CL_API_ENDPOINT = "https://api.rhcloudlink.com"
     CL_DEFAULT_PROFILE = 0
     CL_FORCEUPDATE = False
 
