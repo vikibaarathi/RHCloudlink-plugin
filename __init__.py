@@ -4,7 +4,6 @@ import json
 import socket
 import requests
 import logging
-import RHUtils
 from RHUI import UIField, UIFieldType, UIFieldSelectOption
 logger = logging.getLogger(__name__)
 class CloudLink():
@@ -115,6 +114,28 @@ class CloudLink():
             x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
         else:
             print("Cloud-Link Disabled")
+
+    def class_heat_delete(self,args):
+        keys = self.getEventKeys()
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+            removaltype = args["_eventName"]
+            if removaltype == "heatDelete":
+                endpoint = "/slots"
+                payload = {
+                    "eventid": keys["eventid"],
+                    "privatekey": keys["eventkey"],
+                    "heatid": args["heat_id"]
+                }
+
+            elif removaltype == "classDelete":
+                endpoint = "/class"
+                payload = {
+                    "eventid": keys["eventid"],
+                    "privatekey": keys["eventkey"],
+                    "classid": args["class_id"]
+                }
+            x = requests.delete(self.CL_API_ENDPOINT+endpoint, json = payload)
+            
 
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
@@ -247,8 +268,7 @@ class CloudLink():
     
     def isEnabled(self):
         enabled = self._rhapi.db.option("cl-enable-plugin")
-        
-        print(enabled)
+
         if enabled == "1" and self.CL_FORCEUPDATE == False:
 
             return True
@@ -278,6 +298,8 @@ def initialize(rhapi):
     rhapi.events.on(Evt.HEAT_ALTER, cloudlink.heat_listener)
     rhapi.events.on(Evt.LAPS_SAVE, cloudlink.results_listener)
     rhapi.events.on(Evt.LAPS_RESAVE, cloudlink.results_listener)
+    rhapi.events.on(Evt.HEAT_DELETE, cloudlink.class_heat_delete)
+    rhapi.events.on(Evt.CLASS_DELETE, cloudlink.class_heat_delete)
 
 
     
