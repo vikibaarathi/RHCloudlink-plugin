@@ -65,7 +65,7 @@ class CloudLink():
             eventname = args["_eventName"]
             if eventname == "classAdd":
                 classid = args["class_id"]
-                classname = str(classid)
+                classname = "Class " + str(classid)
                 brackettype = "none"
 
             elif eventname == "classAlter":
@@ -78,7 +78,7 @@ class CloudLink():
                 classid = args["output_class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
                 if raceclass.name == "":
-                    classname = str(classid)
+                    classname = "Class " + str(classid)
                 else:
                     classname = raceclass.name
                 brackettype = args["generator"]         
@@ -143,6 +143,11 @@ class CloudLink():
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
+
+        #Default heat name if None
+        if heatname == "None":
+            heatname = "Heat " + heatid
+
         heatclassid = str(heatobj.class_id)
         racechannels = self.getRaceChannels()
         thisheat = {
