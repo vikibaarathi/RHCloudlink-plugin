@@ -21,6 +21,7 @@ Take note, the plugin disables itself if:
 * No active internet connection is available.
 * Event ID or Private Key is missing.
 * If a notification pops up indicating a mandatory plugin update is required.
+* Event date of that particular event ID has been passed. 
 
 ## Usage 
 
@@ -44,3 +45,19 @@ Heats hold the pilot callsign and race channel and grouped by their classes. Unc
 * Using the auto frequency functionality. 
 * Cloudlink settings page resync function. 
 
+### Generators
+
+Generators are the best way to efficiiently manage a race. Generated classes are automatically pushed to the cloud, while heats wait for pilots to be assigned or seeded. Double Elimination and Single Elimination generators automatically tell Cloudlink to draw out brackets to give racers and spectators a better exprience in enjoying the race. 
+
+### Results & Ranking
+
+Saving a race will automatically push results to the cloud. Likewise, when the RotorHazard marshalling page is used, results get resent again. This keeps racers and spectators update to date with tournament progress. 
+
+Cloudlink also is able to tell if a ranking system is being used. Ranking results will be displayed as a seperate table on rhcloudlink.com.
+
+### Resync Function
+
+The plugin Cloudlink section in the settings page of RotorHazard, allows race director to resync all classes, heats and results to the cloud. This is a one way up system. Nothing is updated in RotorHazard by the plugin. If this functionality is used, please be patient while RotorHazard empties the cloud database and resends everything. The time it takes will depend on the size of the race. 
+
+* Use if for some reason internet was interrupted mid tournament.
+* Race Director forgets to enable the plugin before a race.
