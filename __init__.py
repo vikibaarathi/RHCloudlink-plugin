@@ -246,14 +246,16 @@ class CloudLink():
                 "channel": channel,
                 "callsign": pilotcallsign
             }
-            thisheat["slots"].append(thisslot)
+
+            if thisslot["channel"] != "0":
+                thisheat["slots"].append(thisslot)
+            
         return thisheat
 
     def getRaceChannels(self):
-        db = self._rhapi.db
-        frequencysets = db.frequencysets
-        defaultprofile = frequencysets[self.CL_DEFAULT_PROFILE]
-        frequencies = defaultprofile.frequencies
+
+        frequencies = self._rhapi.race.frequencyset.frequencies
+        
         freq = json.loads(frequencies)
         bands = freq["b"]
         channels = freq["c"]
@@ -266,6 +268,7 @@ class CloudLink():
                 channel = channels[i]
                 racechannel = str(band) + str(channel)
                 racechannels.insert(i,racechannel)
+        
         return racechannels
 
     def results_listener(self,args):
