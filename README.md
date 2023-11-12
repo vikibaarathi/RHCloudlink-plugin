@@ -22,3 +22,25 @@ Take note, the plugin disables itself if:
 * Event ID or Private Key is missing.
 * If a notification pops up indicating a mandatory plugin update is required.
 
+## Usage 
+
+The cloudlink plugin aims to give race directors a seemless or frictionless experience when running tournaments. The following are trigger points for when data is pushed to the cloud.
+
+### Classes
+
+Cloudlink uses classess to divide the cloud experience. Navigation on rhcloudlink.com allows users to switch between classes. Classes are pushed to the cloud:
+
+* Manual class creation.
+* Generated class creation.
+* Class name rename.
+* Cloudlink settings page resync function. 
+
+### Heats
+
+Heats hold the pilot callsign and race channel and grouped by their classes. Unclassified heats are not pushed to the cloud. Heats freshly created or generated are not sent to cloud immediately. Pilots must be assigned for the trigger to happen. They following triggers the heat sync:
+
+* Renaming the heat name.
+* Selecting a pilot over a channel in a heat.
+* Using the auto frequency functionality. 
+* Cloudlink settings page resync function. 
+
