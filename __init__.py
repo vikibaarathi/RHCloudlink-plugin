@@ -69,11 +69,11 @@ class CloudLink():
                 response = x.json()
 
                 if response == "All records removed":
-                    print(response)
+                    logger.info("All cloud records removed")
                     self.resend_everything()
 
             except Exception as err:
-                print(f'Other error occurred: {err}')
+                logger.warning(f'Other error occurred: {err}')
 
     def resend_everything(self):
 
@@ -88,14 +88,18 @@ class CloudLink():
             
             #GET 1 CLASS
             classid = clss.id
-            classname = clss.name
+            
             #check class name if blank
+            if clss.name == '':
+                classname = "Class "+str(classid)
+            else:
+                classname = clss.name
             args = {
                 "_eventName": "resync",
                 "classid": classid,
                 "classname": classname
             }
-            print(args)
+            logging.info(args)
             self.class_listener(args)
 
             #GET ALL HEATS FROM THIS CLASS
@@ -107,7 +111,7 @@ class CloudLink():
                     "heat_id": heat.id
                 }
 
-                print(args)
+                logging.info(args)
                 self.heat_listener(args)
 
             #GET RESULTS FOR THIS CLASS
@@ -266,7 +270,6 @@ class CloudLink():
 
     def results_listener(self,args):
         keys = self.getEventKeys()
-
         if args["_eventName"] == "resync":
             classid = args["classid"]
         else:
@@ -274,34 +277,39 @@ class CloudLink():
             classid = savedracemeta.class_id
   
         raceclass = self._rhapi.db.raceclass_by_id(classid)
-        print(raceclass)
         classname = raceclass.name
         ranking = raceclass.ranking
-        print(ranking)
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
 
             rankpayload = []
             resultpayload = []
+            #if got results and no ranking configured - ranking False
+            #if got nore results no ranking configured - ranking None
+            #if got results and ranking configured - ranking OBJECT
 
-            if ranking != None and ranking is True:
-                print("send ranking")
-                meta = ranking["meta"]
-                method_label = meta["method_label"]
-                ranks = ranking["ranking"]
-                for rank in ranks:
-                    pilot = {
-                        "classid": classid,
-                        "classname": classname,
-                        "pilot_id": rank["pilot_id"],
-                        "callsign": rank["callsign"],
-                        "position": rank["position"],
-                        "heat": rank["heat"],
-                        "method_label": method_label
+            if ranking != None:
+                if isinstance(ranking, bool) and ranking is False:
 
-                    }
-                    rankpayload.append(pilot)     
+                    rankpayload = []
 
-            print("send results")
+                else:
+
+                    meta = ranking["meta"]
+                    method_label = meta["method_label"]
+                    ranks = ranking["ranking"]
+                    for rank in ranks:
+                        pilot = {
+                            "classid": classid,
+                            "classname": classname,
+                            "pilot_id": rank["pilot_id"],
+                            "callsign": rank["callsign"],
+                            "position": rank["position"],
+                            "heat": rank["heat"],
+                            "method_label": method_label
+
+                        }
+                        rankpayload.append(pilot)     
+
             db = self._rhapi.db
             fullresults = db.raceclass_results(classid)
             if fullresults != None:
@@ -339,6 +347,9 @@ class CloudLink():
                 #send to cloud
                 x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
                 logger.info("Results sent to cloud")
+
+            else:
+                logger.info("No results available to resync")
 
         else:
             logger.warning("No internet connection available")
