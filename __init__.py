@@ -56,6 +56,75 @@ class CloudLink():
     def ui_button(self,args):
         ui = self._rhapi.ui
         ui.message_notify("Initializing resyncronization protocol...")
+        keys = self.getEventKeys()
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+            payload = {
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"]         
+            }
+
+            try:
+                x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
+                x.raise_for_status()
+                response = x.json()
+
+                if response == "All records removed":
+                    logger.info("All cloud records removed")
+                    self.resend_everything()
+
+            except Exception as err:
+                logger.warning(f'Other error occurred: {err}')
+
+    def resend_everything(self):
+
+        ui = self._rhapi.ui
+
+        #GET ALL CLASSES
+        db = self._rhapi.db
+        classes = db.raceclasses
+
+        total = len(classes)
+        for idx, clss in enumerate(classes):
+            
+            #GET 1 CLASS
+            classid = clss.id
+            
+            #check class name if blank
+            if clss.name == '':
+                classname = "Class "+str(classid)
+            else:
+                classname = clss.name
+            args = {
+                "_eventName": "resync",
+                "classid": classid,
+                "classname": classname
+            }
+            logging.info(args)
+            self.class_listener(args)
+
+            #GET ALL HEATS FROM THIS CLASS
+            heats = db.heats_by_class(classid)
+
+            for heat in heats:
+                args = {
+                    "_eventName": "resync",
+                    "heat_id": heat.id
+                }
+
+                logging.info(args)
+                self.heat_listener(args)
+
+            #GET RESULTS FOR THIS CLASS
+            resultargs = {
+                "_eventName": "resync",
+                "classid": classid
+            }
+            self.results_listener(resultargs)
+            uimessage = str(idx + 1)+"/"+str(total)+" classes successfully synced..."
+            ui.message_notify(uimessage)
+
+        return True
+
 
     def class_listener(self,args):
 
@@ -81,7 +150,13 @@ class CloudLink():
                     classname = "Class " + str(classid)
                 else:
                     classname = raceclass.name
-                brackettype = args["generator"]         
+                brackettype = args["generator"]
+
+            elif eventname == "resync":
+                classid = args["classid"]
+                classname = args["classname"]
+                brackettype = "none" 
+                #ENHANCE TO REMEMBER BRACKET TYPE
 
             payload = {
                 "eventid": keys["eventid"],
@@ -195,70 +270,86 @@ class CloudLink():
 
     def results_listener(self,args):
         keys = self.getEventKeys()
-        savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
-        classid = savedracemeta.class_id
+        if args["_eventName"] == "resync":
+            classid = args["classid"]
+        else:
+            savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
+            classid = savedracemeta.class_id
+  
         raceclass = self._rhapi.db.raceclass_by_id(classid)
         classname = raceclass.name
         ranking = raceclass.ranking
-
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
 
             rankpayload = []
             resultpayload = []
+            #if got results and no ranking configured - ranking False
+            #if got nore results no ranking configured - ranking None
+            #if got results and ranking configured - ranking OBJECT
 
-            if ranking:
-                meta = ranking["meta"]
-                method_label = meta["method_label"]
-                ranks = ranking["ranking"]
-                for rank in ranks:
-                    pilot = {
-                        "classid": classid,
-                        "classname": classname,
-                        "pilot_id": rank["pilot_id"],
-                        "callsign": rank["callsign"],
-                        "position": rank["position"],
-                        "heat": rank["heat"],
-                        "method_label": method_label
+            if ranking != None:
+                if isinstance(ranking, bool) and ranking is False:
 
-                    }
-                    rankpayload.append(pilot)     
+                    rankpayload = []
+
+                else:
+
+                    meta = ranking["meta"]
+                    method_label = meta["method_label"]
+                    ranks = ranking["ranking"]
+                    for rank in ranks:
+                        pilot = {
+                            "classid": classid,
+                            "classname": classname,
+                            "pilot_id": rank["pilot_id"],
+                            "callsign": rank["callsign"],
+                            "position": rank["position"],
+                            "heat": rank["heat"],
+                            "method_label": method_label
+
+                        }
+                        rankpayload.append(pilot)     
 
             db = self._rhapi.db
             fullresults = db.raceclass_results(classid)
-            meta = fullresults["meta"]
-            primary_leaderboard = meta["primary_leaderboard"]         
-            filteredresults = fullresults[primary_leaderboard]
+            if fullresults != None:
+                meta = fullresults["meta"]
+                primary_leaderboard = meta["primary_leaderboard"]         
+                filteredresults = fullresults[primary_leaderboard]
 
-            for result in filteredresults:
+                for result in filteredresults:
 
-                pilot = {
-                    "classid": classid,
-                    "classname": classname,
-                    "pilot_id": result["pilot_id"],
-                    "callsign": result["callsign"],
-                    "position": result["position"],
-                    "consecutives": result["consecutives"],
-                    "consecutives_base" : result["consecutives_base"],
-                    "laps": result["laps"],
-                    "total_time": result["total_time"],
-                    "average_lap": result["average_lap"],
-                    "fastest_lap": result["fastest_lap"],
-                    "method_label": primary_leaderboard
+                    pilot = {
+                        "classid": classid,
+                        "classname": classname,
+                        "pilot_id": result["pilot_id"],
+                        "callsign": result["callsign"],
+                        "position": result["position"],
+                        "consecutives": result["consecutives"],
+                        "consecutives_base" : result["consecutives_base"],
+                        "laps": result["laps"],
+                        "total_time": result["total_time"],
+                        "average_lap": result["average_lap"],
+                        "fastest_lap": result["fastest_lap"],
+                        "method_label": primary_leaderboard
+                    }
+                    resultpayload.append(pilot)
+
+                payload = {
+                    "eventid": keys["eventid"],
+                    "privatekey": keys["eventkey"],
+                    "ranks": rankpayload,
+                    "results": resultpayload
                 }
-                resultpayload.append(pilot)
 
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "ranks": rankpayload,
-                "results": resultpayload
-            }
+                # results = json.dumps(payload)
+                # logger.warning(results)
+                #send to cloud
+                x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
+                logger.info("Results sent to cloud")
 
-            # results = json.dumps(payload)
-            # logger.warning(results)
-            #send to cloud
-            x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
-            logger.info("Results sent to cloud")
+            else:
+                logger.info("No results available to resync")
 
         else:
             logger.warning("No internet connection available")
