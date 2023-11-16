@@ -128,6 +128,8 @@ class CloudLink():
 
     def class_listener(self,args):
 
+        print(args)
+
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
             
@@ -140,7 +142,10 @@ class CloudLink():
             elif eventname == "classAlter":
                 classid = args["class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
-                classname = raceclass.name
+                if raceclass.name == "":
+                    classname = "Class " + str(classid)
+                else:
+                    classname = raceclass.name
                 brackettype = "none"
 
             elif eventname == "heatGenerate":
