@@ -127,6 +127,7 @@ class CloudLink():
 
 
     def class_listener(self,args):
+
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
             
@@ -139,10 +140,7 @@ class CloudLink():
             elif eventname == "classAlter":
                 classid = args["class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
-                if raceclass.name == "":
-                    classname = "Class " + str(classid)
-                else:
-                    classname = raceclass.name
+                classname = raceclass.name
                 brackettype = "none"
 
             elif eventname == "heatGenerate":
@@ -249,7 +247,7 @@ class CloudLink():
                 "callsign": pilotcallsign
             }
 
-            if thisslot["channel"] != "0":
+            if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
                 thisheat["slots"].append(thisslot)
             
         return thisheat
@@ -259,6 +257,7 @@ class CloudLink():
         frequencies = self._rhapi.race.frequencyset.frequencies
         
         freq = json.loads(frequencies)
+
         bands = freq["b"]
         channels = freq["c"]
         racechannels = []
