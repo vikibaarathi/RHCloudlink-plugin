@@ -58,24 +58,31 @@ class CloudLink():
             r.raise_for_status()
             response = r.json()
             print(response)
+
+            bracketlist = []
+            for i in response:
+                if i["sk"] != "event":
+                    bracketlist.append(i)
+
+            print(bracketlist)
             payload = {
                 "eventid": keys["eventid"],
                 "privatekey": keys["eventkey"]         
             }
 
-            # try:
-            #     x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
-            #     x.raise_for_status()
-            #     response = x.json()
+            try:
+                x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
+                x.raise_for_status()
+                response = x.json()
 
-            #     if response == "All records removed":
-            #         self.logger.info("All cloud records removed")
-            #         self.resend_everything()
+                if response == "All records removed":
+                    self.logger.info("All cloud records removed")
+                    self.resend_everything(bracketlist)
 
-            # except Exception as err:
-            #     self.logger.warning(f'Other error occurred: {err}')
+            except Exception as err:
+                self.logger.warning(f'Other error occurred: {err}')
 
-    def resend_everything(self):
+    def resend_everything(self, bracketlist):
 
         ui = self._rhapi.ui
 
@@ -88,7 +95,11 @@ class CloudLink():
             
             #GET 1 CLASS
             classid = clss.id
+            for i in bracketlist:
+                if i["classid"] ==  classid:
+                    brackettype = i["brackettype"]
             
+
             #check class name if blank
             if clss.name == '':
                 classname = "Class "+str(classid)
@@ -97,7 +108,8 @@ class CloudLink():
             args = {
                 "_eventName": "resync",
                 "classid": classid,
-                "classname": classname
+                "classname": classname,
+                "brackettype": brackettype
             }
             logging.info(args)
             self.class_listener(args)
@@ -163,8 +175,8 @@ class CloudLink():
             elif eventname == "resync":
                 classid = args["classid"]
                 classname = args["classname"]
-                brackettype = "none" 
-                #ENHANCE TO REMEMBER BRACKET TYPE
+                brackettype = args["brackettype"] 
+                
 
             payload = {
                 "eventid": keys["eventid"],
