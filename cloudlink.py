@@ -53,22 +53,27 @@ class CloudLink():
         ui.message_notify("Initializing resyncronization protocol...")
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
+
+            r = requests.get(self.CL_API_ENDPOINT+"/event?eventid="+keys["eventid"])
+            r.raise_for_status()
+            response = r.json()
+            print(response)
             payload = {
                 "eventid": keys["eventid"],
                 "privatekey": keys["eventkey"]         
             }
 
-            try:
-                x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
-                x.raise_for_status()
-                response = x.json()
+            # try:
+            #     x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
+            #     x.raise_for_status()
+            #     response = x.json()
 
-                if response == "All records removed":
-                    self.logger.info("All cloud records removed")
-                    self.resend_everything()
+            #     if response == "All records removed":
+            #         self.logger.info("All cloud records removed")
+            #         self.resend_everything()
 
-            except Exception as err:
-                self.logger.warning(f'Other error occurred: {err}')
+            # except Exception as err:
+            #     self.logger.warning(f'Other error occurred: {err}')
 
     def resend_everything(self):
 
