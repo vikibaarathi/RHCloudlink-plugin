@@ -3,7 +3,7 @@ import requests
 import logging
 from RHUI import UIField, UIFieldType
 class CloudLink():
-    CL_VERSION = "0.1.0"
+    CL_VERSION = "1.0.0"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
     CL_FORCEUPDATE = False
 
@@ -11,7 +11,7 @@ class CloudLink():
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
         
-    def initialize_plugin(self,args):
+    def init_plugin(self,args):
         
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
@@ -32,23 +32,19 @@ class CloudLink():
         
     def init_ui(self,args):
         ui = self._rhapi.ui
-        fields = self._rhapi.fields
-        #Register the panel for Cloud Link
         ui.register_panel("cloud-link", "Cloudlink", "format")
-        
-        #Register all the text input for Cloud Link
+        ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_start)
+
         cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloudlink server.")
-        fields.register_option(cl_enableplugin, "cloud-link")
         cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at rhcloudlink.com")
         cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Authentication key provided by Cloudlink during event registration.")
 
+        fields = self._rhapi.fields
+        fields.register_option(cl_enableplugin, "cloud-link")
         fields.register_option(cl_eventid, "cloud-link")
-        fields.register_option(cl_eventkey, "cloud-link")
+        fields.register_option(cl_eventkey, "cloud-link")      
 
-
-        ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.begin_resync)
-
-    def begin_resync(self,args):
+    def resync_start(self,args):
         ui = self._rhapi.ui
         ui.message_notify("Initializing resyncronization protocol...")
         keys = self.getEventKeys()
@@ -136,15 +132,6 @@ class CloudLink():
 
         return True
 
-    def get_brackettype(self,args):
-        
-        brackettype = args["generator"]
-        if brackettype == "Regulation_bracket__double_elimination" or brackettype == "Regulation_bracket__single_elimination":
-            generate_args = args["generate_args"]
-            brackettype = brackettype+"_"+generate_args["standard"]
-
-        return brackettype
-    
     def class_listener(self,args):
         
         keys = self.getEventKeys()
@@ -160,7 +147,7 @@ class CloudLink():
                 classid = args["class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
                 classname = raceclass.name
-                brackettype = "none"
+                brackettype = "check"
 
             elif eventname == "heatGenerate":
                 classid = args["output_class_id"]
@@ -189,24 +176,6 @@ class CloudLink():
         else:
             self.logger.warning("Cloud-Link Disabled")
 
-    def heat_listener(self,args):
-        keys = self.getEventKeys()
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
-
-            db = self._rhapi.db
-            heat = db.heat_by_id(args["heat_id"])
-            groups = []
-            thisheat = self.getGroupingDetails(heat,db)
-            groups.append(thisheat)
-
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "heats": groups
-            }
-            x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
-        else:
-            self.logger.warning("Cloud-Link Disabled")
 
     def class_heat_delete(self,args):
         keys = self.getEventKeys()
@@ -227,8 +196,26 @@ class CloudLink():
                     "privatekey": keys["eventkey"],
                     "classid": args["class_id"]
                 }
-            x = requests.delete(self.CL_API_ENDPOINT+endpoint, json = payload)
-            
+            x = requests.delete(self.CL_API_ENDPOINT+endpoint, json = payload)  
+
+    def heat_listener(self,args):
+        keys = self.getEventKeys()
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+
+            db = self._rhapi.db
+            heat = db.heat_by_id(args["heat_id"])
+            groups = []
+            thisheat = self.getGroupingDetails(heat,db)
+            groups.append(thisheat)
+
+            payload = {
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"],
+                "heats": groups
+            }
+            x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
+        else:
+            self.logger.warning("Cloud-Link Disabled")
 
     def getGroupingDetails(self, heatobj, db):
         heatname = str(heatobj.name)
@@ -250,23 +237,21 @@ class CloudLink():
         slots = db.slots_by_heat(heatid)
         
         for slot in slots:
+            if slot.node_index is not None:
+                
+                pilotcallsign = "-"
+                if slot.pilot_id != 0:
+                    channel = racechannels[slot.node_index]                  
+                    pilot = db.pilot_by_id(slot.pilot_id)
+                    pilotcallsign = pilot.callsign
+                    thisslot = {
+                        "nodeindex": slot.node_index,
+                        "channel": channel,
+                        "callsign": pilotcallsign
+                    }
 
-            channel = racechannels[slot.node_index]
-            pilotcallsign = "-"
-            if slot.pilot_id != 0:                  
-                pilot = db.pilot_by_id(slot.pilot_id)
-                pilotcallsign = pilot.callsign
-
-
-            thisslot = {
-                "nodeindex": slot.node_index,
-                "channel": channel,
-                "callsign": pilotcallsign
-            }
-
-            if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
-                thisheat["slots"].append(thisslot)
-
+                    if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
+                        thisheat["slots"].append(thisslot)
         return thisheat
 
     def getRaceChannels(self):
@@ -397,7 +382,13 @@ class CloudLink():
         }
         return keys
 
+    def get_brackettype(self,args):
+        
+        brackettype = args["generator"]
+        if brackettype == "Regulation_bracket__double_elimination" or brackettype == "Regulation_bracket__single_elimination":
+            generate_args = args["generate_args"]
+            brackettype = brackettype+"_"+generate_args["standard"]
 
-
+        return brackettype
 
     
