@@ -252,7 +252,7 @@ class CloudLink():
         for slot in slots:
 
             channel = racechannels[slot.node_index]
-            pilotcallsign = "empty"
+            pilotcallsign = "-"
             if slot.pilot_id != 0:                  
                 pilot = db.pilot_by_id(slot.pilot_id)
                 pilotcallsign = pilot.callsign
