@@ -57,14 +57,11 @@ class CloudLink():
             r = requests.get(self.CL_API_ENDPOINT+"/event?eventid="+keys["eventid"])
             r.raise_for_status()
             response = r.json()
-            print(response)
 
             bracketlist = []
             for i in response:
                 if i["sk"] != "event":
                     bracketlist.append(i)
-
-            print(bracketlist)
             payload = {
                 "eventid": keys["eventid"],
                 "privatekey": keys["eventkey"]         
@@ -92,12 +89,14 @@ class CloudLink():
 
         total = len(classes)
         for idx, clss in enumerate(classes):
-            
+            brackettype = "none"
             #GET 1 CLASS
             classid = clss.id
             for i in bracketlist:
                 if i["classid"] ==  classid:
                     brackettype = i["brackettype"]
+
+                    
             
 
             #check class name if blank
@@ -191,7 +190,6 @@ class CloudLink():
             self.logger.warning("Cloud-Link Disabled")
 
     def heat_listener(self,args):
-
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
 
@@ -250,7 +248,9 @@ class CloudLink():
             "slots":[]
         }
         slots = db.slots_by_heat(heatid)
+        
         for slot in slots:
+
             channel = racechannels[slot.node_index]
             pilotcallsign = "empty"
             if slot.pilot_id != 0:                  
@@ -266,7 +266,7 @@ class CloudLink():
 
             if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
                 thisheat["slots"].append(thisslot)
-            
+
         return thisheat
 
     def getRaceChannels(self):
@@ -274,7 +274,6 @@ class CloudLink():
         frequencies = self._rhapi.race.frequencyset.frequencies
         
         freq = json.loads(frequencies)
-
         bands = freq["b"]
         channels = freq["c"]
         racechannels = []
