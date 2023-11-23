@@ -53,6 +53,15 @@ class CloudLink():
         ui.message_notify("Initializing resyncronization protocol...")
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
+
+            r = requests.get(self.CL_API_ENDPOINT+"/event?eventid="+keys["eventid"])
+            r.raise_for_status()
+            response = r.json()
+
+            bracketlist = []
+            for i in response:
+                if i["sk"] != "event":
+                    bracketlist.append(i)
             payload = {
                 "eventid": keys["eventid"],
                 "privatekey": keys["eventkey"]         
@@ -65,12 +74,12 @@ class CloudLink():
 
                 if response == "All records removed":
                     self.logger.info("All cloud records removed")
-                    self.resend_everything()
+                    self.resend_everything(bracketlist)
 
             except Exception as err:
                 self.logger.warning(f'Other error occurred: {err}')
 
-    def resend_everything(self):
+    def resend_everything(self, bracketlist):
 
         ui = self._rhapi.ui
 
@@ -80,10 +89,16 @@ class CloudLink():
 
         total = len(classes)
         for idx, clss in enumerate(classes):
-            
+            brackettype = "none"
             #GET 1 CLASS
             classid = clss.id
+            for i in bracketlist:
+                if i["classid"] ==  classid:
+                    brackettype = i["brackettype"]
+
+                    
             
+
             #check class name if blank
             if clss.name == '':
                 classname = "Class "+str(classid)
@@ -92,7 +107,8 @@ class CloudLink():
             args = {
                 "_eventName": "resync",
                 "classid": classid,
-                "classname": classname
+                "classname": classname,
+                "brackettype": brackettype
             }
             logging.info(args)
             self.class_listener(args)
@@ -158,8 +174,8 @@ class CloudLink():
             elif eventname == "resync":
                 classid = args["classid"]
                 classname = args["classname"]
-                brackettype = "none" 
-                #ENHANCE TO REMEMBER BRACKET TYPE
+                brackettype = args["brackettype"] 
+                
 
             payload = {
                 "eventid": keys["eventid"],
@@ -174,7 +190,6 @@ class CloudLink():
             self.logger.warning("Cloud-Link Disabled")
 
     def heat_listener(self,args):
-
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
 
@@ -233,7 +248,9 @@ class CloudLink():
             "slots":[]
         }
         slots = db.slots_by_heat(heatid)
+        
         for slot in slots:
+
             channel = racechannels[slot.node_index]
             pilotcallsign = "empty"
             if slot.pilot_id != 0:                  
@@ -249,7 +266,7 @@ class CloudLink():
 
             if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
                 thisheat["slots"].append(thisslot)
-            
+
         return thisheat
 
     def getRaceChannels(self):
@@ -257,7 +274,6 @@ class CloudLink():
         frequencies = self._rhapi.race.frequencyset.frequencies
         
         freq = json.loads(frequencies)
-
         bands = freq["b"]
         channels = freq["c"]
         racechannels = []
