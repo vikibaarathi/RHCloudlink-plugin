@@ -237,21 +237,21 @@ class CloudLink():
         slots = db.slots_by_heat(heatid)
         
         for slot in slots:
-            if slot.node_index is not None:
-                
-                pilotcallsign = "-"
-                if slot.pilot_id != 0:
-                    channel = racechannels[slot.node_index]                  
-                    pilot = db.pilot_by_id(slot.pilot_id)
-                    pilotcallsign = pilot.callsign
-                    thisslot = {
-                        "nodeindex": slot.node_index,
-                        "channel": channel,
-                        "callsign": pilotcallsign
-                    }
+            
+            channel = racechannels[slot.node_index] 
+            pilotcallsign = "-"
+            if slot.pilot_id != 0:
+                                    
+                pilot = db.pilot_by_id(slot.pilot_id)
+                pilotcallsign = pilot.callsign
+            thisslot = {
+                "nodeindex": slot.node_index,
+                "channel": channel,
+                "callsign": pilotcallsign
+            }
 
-                    if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
-                        thisheat["slots"].append(thisslot)
+            if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
+                thisheat["slots"].append(thisslot)
         return thisheat
 
     def getRaceChannels(self):
