@@ -273,7 +273,58 @@ class CloudLink():
         
         return racechannels
 
+    def laptime_listener(self,args):
+
+        keys = self.getEventKeys()
+
+        print("Hello world from laptimer listener")
+        print(args)
+
+        raceid = args["race_id"]
+        print("RaceID: "+ str(raceid))
+
+        #ROUND SUMMARY - SUMMARY OF THIS PARTICULAR ROUND
+        raceresults = self._rhapi.db.race_results(raceid)
+        primary_leaderboard = raceresults["meta"]["primary_leaderboard"]
+        filteredraceresults = raceresults[primary_leaderboard]
+
+
+        #PILOT RUNS BY RACEID
+        pilotruns = self._rhapi.db.pilotruns_by_race(raceid)
+
+        pilotlaps = []
+        for run in pilotruns:
+            runid = run.id
+
+            #LAPTIMES FOR INDIVIDUAL PILOT
+
+            laps = self._rhapi.db.laps_by_pilotrun(runid)
+            for lap in laps:
+
+                if lap.deleted == False:
+                    thislap = {
+                        "id": lap.id,
+                        "race_id": lap.race_id,
+                        "pilotrace_id": lap.pilotrace_id,
+                        "pilot_id": lap.pilot_id,
+                        "lap_time_stamp": lap.lap_time_stamp,
+                        "lap_time": lap.lap_time,
+                        "lap_time_formatted": lap.lap_time_formatted,
+                        "deleted": lap.deleted
+                    }
+                    pilotlaps.append(thislap)
+
+        payload = {
+            "eventid": keys["eventid"],
+            "privatekey": keys["eventkey"],
+            "roundresults": filteredraceresults,
+            "pilotlaps": pilotlaps
+
+        }
+
+        print(payload)
     def results_listener(self,args):
+        print("hello from results listener")
         keys = self.getEventKeys()
         if args["_eventName"] == "resync":
             classid = args["classid"]
