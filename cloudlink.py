@@ -127,6 +127,19 @@ class CloudLink():
                 "classid": classid
             }
             self.results_listener(resultargs)
+
+            allraces = self._rhapi.db.races_by_raceclass(classid)
+            for race in allraces:
+
+                lapsargs = {
+                    "_eventName": "resync",
+                    "race_id": race.id
+                }
+
+                self.laptime_listener(lapsargs)
+
+            
+
             uimessage = str(idx + 1)+"/"+str(total)+" classes successfully synced..."
             ui.message_notify(uimessage)
 
@@ -273,11 +286,80 @@ class CloudLink():
         
         return racechannels
 
+    def laptime_listener(self,args):
+        
+        #GET EVENT ID AND PRIVATE KEY
+        keys = self.getEventKeys()
+
+        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+
+            #GET THE ID information
+            raceid = args["race_id"]
+
+            savedracemeta = self._rhapi.db.race_by_id(raceid)
+            classid = savedracemeta.class_id
+            heatid = savedracemeta.heat_id
+            roundid = savedracemeta.round_id
+
+            raceclass = self._rhapi.db.raceclass_by_id(classid)
+            classname = raceclass.name
+
+            #ROUND SUMMARY - SUMMARY OF THIS PARTICULAR ROUND
+            raceresults = self._rhapi.db.race_results(raceid)
+            primary_leaderboard = raceresults["meta"]["primary_leaderboard"]
+            filteredraceresults = raceresults[primary_leaderboard]
+
+
+            #PILOT RUNS BY RACEID
+            pilotruns = self._rhapi.db.pilotruns_by_race(raceid)
+
+            pilotlaps = []
+            for run in pilotruns:
+                runid = run.id
+
+                #LAPTIMES FOR INDIVIDUAL PILOT
+
+                laps = self._rhapi.db.laps_by_pilotrun(runid)
+                for lap in laps:
+
+                    if lap.deleted == False:
+                        thislap = {
+                            "id": lap.id,
+                            "race_id": lap.race_id,
+                            "pilotrace_id": lap.pilotrace_id,
+                            "pilot_id": lap.pilot_id,
+                            "lap_time_stamp": lap.lap_time_stamp,
+                            "lap_time": lap.lap_time,
+                            "lap_time_formatted": lap.lap_time_formatted,
+                            "deleted": lap.deleted
+                        }
+                        pilotlaps.append(thislap)
+
+            payload = {
+                "eventid": keys["eventid"],
+                "privatekey": keys["eventkey"],
+                "raceid": raceid,
+                "classid": classid,
+                "classname": classname,
+                "heatid": heatid,
+                "roundid": roundid,
+                "method_label": primary_leaderboard,
+                "roundresults": filteredraceresults,
+                "pilotlaps": pilotlaps
+
+            }
+
+            x = requests.post(self.CL_API_ENDPOINT+"/laps", json = payload)
+            self.logger.info("Laps sent to cloud")
+
+        
     def results_listener(self,args):
+        
         keys = self.getEventKeys()
         if args["_eventName"] == "resync":
             classid = args["classid"]
         else:
+            self.laptime_listener(args)
             savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
             classid = savedracemeta.class_id
   
