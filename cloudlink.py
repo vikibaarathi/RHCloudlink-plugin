@@ -1,7 +1,27 @@
 import json
 import requests
 import logging
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType
+from .datamanager import ClDataManager
+
+class AlchemyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj.__class__, DeclarativeMeta):
+            # an SQLAlchemy class
+            fields = {}
+            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+                data = obj.__getattribute__(field)
+                try:
+                    json.dumps(data) # this will fail on non-encodable values, like other classes
+                    fields[field] = data
+                except TypeError:
+                    fields[field] = None
+            # a json-encodable dict
+            return fields
+
+        return json.JSONEncoder.default(self, obj)
 class CloudLink():
     CL_VERSION = "1.0.0"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
@@ -33,7 +53,7 @@ class CloudLink():
     def init_ui(self,args):
         ui = self._rhapi.ui
         ui.register_panel("cloud-link", "Cloudlink", "format")
-        ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_start)
+        ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_new)
 
         cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloudlink server.")
         cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at rhcloudlink.com")
@@ -42,7 +62,14 @@ class CloudLink():
         fields = self._rhapi.fields
         fields.register_option(cl_enableplugin, "cloud-link")
         fields.register_option(cl_eventid, "cloud-link")
-        fields.register_option(cl_eventkey, "cloud-link")      
+        fields.register_option(cl_eventkey, "cloud-link")
+
+    def resync_new(self, args):
+
+          resyncmanager = ClDataManager(self._rhapi)
+          data = resyncmanager.get_everything()
+          with open("cloudlink.json", "w") as outfile:
+            outfile.write(data)
 
     def resync_start(self,args):
         ui = self._rhapi.ui
