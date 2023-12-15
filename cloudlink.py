@@ -30,6 +30,7 @@ class CloudLink():
     def __init__(self,rhapi):
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
+        self.cldatamanger = ClDataManager(self._rhapi)
         
     def init_plugin(self,args):
         
@@ -65,112 +66,23 @@ class CloudLink():
         fields.register_option(cl_eventkey, "cloud-link")
 
     def resync_new(self, args):
-
-          resyncmanager = ClDataManager(self._rhapi)
-          data = resyncmanager.get_everything()
-          with open("cloudlink.json", "w") as outfile:
-            outfile.write(data)
-
-    def resync_start(self,args):
-        ui = self._rhapi.ui
-        ui.message_notify("Initializing resyncronization protocol...")
+     
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
-
-            r = requests.get(self.CL_API_ENDPOINT+"/event?eventid="+keys["eventid"])
-            r.raise_for_status()
-            response = r.json()
-
-            bracketlist = []
-            for i in response:
-                if i["sk"] != "event":
-                    bracketlist.append(i)
+            data = self.cldatamanger.get_everything()
+            ui = self._rhapi.ui
+            ui.message_notify("Initializing resyncronization protocol...")
             payload = {
                 "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"]         
+                "privatekey": keys["eventkey"],
+                "data": data         
             }
 
-            try:
-                x = requests.delete(self.CL_API_ENDPOINT+"/event", json = payload)
-                x.raise_for_status()
-                response = x.json()
-
-                if response == "All records removed":
-                    self.logger.info("All cloud records removed")
-                    self.resend_everything(bracketlist)
-
-            except Exception as err:
-                self.logger.warning(f'Other error occurred: {err}')
-
-    def resend_everything(self, bracketlist):
-
-        ui = self._rhapi.ui
-
-        #GET ALL CLASSES
-        db = self._rhapi.db
-        classes = db.raceclasses
-
-        total = len(classes)
-        for idx, clss in enumerate(classes):
-            brackettype = "none"
-            #GET 1 CLASS
-            classid = clss.id
-            for i in bracketlist:
-                if i["classid"] ==  classid:
-                    brackettype = i["brackettype"]
-
-                    
-            
-
-            #check class name if blank
-            if clss.name == '':
-                classname = "Class "+str(classid)
-            else:
-                classname = clss.name
-            args = {
-                "_eventName": "resync",
-                "classid": classid,
-                "classname": classname,
-                "brackettype": brackettype
-            }
-            logging.info(args)
-            self.class_listener(args)
-
-            #GET ALL HEATS FROM THIS CLASS
-            heats = db.heats_by_class(classid)
-
-            for heat in heats:
-                args = {
-                    "_eventName": "resync",
-                    "heat_id": heat.id
-                }
-
-                logging.info(args)
-                self.heat_listener(args)
-
-            #GET RESULTS FOR THIS CLASS
-            resultargs = {
-                "_eventName": "resync",
-                "classid": classid
-            }
-            self.results_listener(resultargs)
-
-            allraces = self._rhapi.db.races_by_raceclass(classid)
-            for race in allraces:
-
-                lapsargs = {
-                    "_eventName": "resync",
-                    "race_id": race.id
-                }
-
-                self.laptime_listener(lapsargs)
+            x = requests.post(self.CL_API_ENDPOINT+"/resync", json = payload)
+            ui.message_notify("Records sent to cloud for processing. Check cloudlink for status")
 
             
-
-            uimessage = str(idx + 1)+"/"+str(total)+" classes successfully synced..."
-            ui.message_notify(uimessage)
-
-        return True
+    
 
     def class_listener(self,args):
         
@@ -197,12 +109,6 @@ class CloudLink():
                 else:
                     classname = raceclass.name
                 brackettype = self.get_brackettype(args)
-
-            elif eventname == "resync":
-                classid = args["classid"]
-                classname = args["classname"]
-                brackettype = args["brackettype"] 
-                
 
             payload = {
                 "eventid": keys["eventid"],
@@ -262,11 +168,12 @@ class CloudLink():
         heatid = str(heatobj.id)
 
         #Default heat name if None
-        if heatname == "None":
+        if heatname == "None" or heatname == "":
             heatname = "Heat " + heatid
 
         heatclassid = str(heatobj.class_id)
         racechannels = self.getRaceChannels()
+
         thisheat = {
             "classid": heatclassid,
             "classname": "unsupported",
@@ -275,23 +182,26 @@ class CloudLink():
             "slots":[]
         }
         slots = db.slots_by_heat(heatid)
+
         
         for slot in slots:
-            
-            channel = racechannels[slot.node_index] 
-            pilotcallsign = "-"
-            if slot.pilot_id != 0:
-                                    
-                pilot = db.pilot_by_id(slot.pilot_id)
-                pilotcallsign = pilot.callsign
-            thisslot = {
-                "nodeindex": slot.node_index,
-                "channel": channel,
-                "callsign": pilotcallsign
-            }
 
-            if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
-                thisheat["slots"].append(thisslot)
+            if slot.node_index is not None:
+
+                channel = racechannels[slot.node_index] 
+                pilotcallsign = "-"
+                if slot.pilot_id != 0:
+                                        
+                    pilot = db.pilot_by_id(slot.pilot_id)
+                    pilotcallsign = pilot.callsign
+                thisslot = {
+                    "nodeindex": slot.node_index,
+                    "channel": channel,
+                    "callsign": pilotcallsign
+                }
+
+                if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
+                    thisheat["slots"].append(thisslot)
         return thisheat
 
     def getRaceChannels(self):
@@ -383,12 +293,10 @@ class CloudLink():
     def results_listener(self,args):
         
         keys = self.getEventKeys()
-        if args["_eventName"] == "resync":
-            classid = args["classid"]
-        else:
-            self.laptime_listener(args)
-            savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
-            classid = savedracemeta.class_id
+
+        self.laptime_listener(args)
+        savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
+        classid = savedracemeta.class_id
   
         raceclass = self._rhapi.db.raceclass_by_id(classid)
         classname = raceclass.name

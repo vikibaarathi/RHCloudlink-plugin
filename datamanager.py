@@ -113,8 +113,9 @@ class ClDataManager():
                     finalresults = []
                 else:
                     meta = classresults["meta"]
-                    primary_leaderboard = meta["primary_leaderboard"]         
-                    filteredresults = classresults[primary_leaderboard]
+                    primary_leaderboard = meta["method_label"]   
+      
+                    filteredresults = classresults["ranking"]
                     
                     for result in filteredresults:
 
@@ -139,9 +140,15 @@ class ClDataManager():
         heats = self._rhapi.db.heats
         heatlist = []
         for heat in heats:
+
+            if heat.name == "None" or heat.name == "":
+                heatname = "Heat "+ str(heat.id)
+            else:
+                heatname = heat.name    
+
             heatobj = {
                 "heatid": heat.id,
-                "heatname": heat.name,
+                "heatname": heatname,
                 "classid": heat.class_id
             }
             heatlist.append(heatobj)
