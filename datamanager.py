@@ -90,7 +90,9 @@ class ClDataManager():
                         "total_time": result["total_time"],
                         "average_lap": result["average_lap"],
                         "fastest_lap": result["fastest_lap"],
-                        "method_label": primary_leaderboard
+                        "method_label": primary_leaderboard,
+                        "fastest_lap_source": result["fastest_lap_source"],
+                        "consecutives_source": result["consecutives_source"]
                     }
                     finalresults.append(resultobj)
 
