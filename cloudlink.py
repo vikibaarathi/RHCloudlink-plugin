@@ -5,23 +5,6 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType
 from .datamanager import ClDataManager
 
-class AlchemyEncoder(json.JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj.__class__, DeclarativeMeta):
-            # an SQLAlchemy class
-            fields = {}
-            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
-                data = obj.__getattribute__(field)
-                try:
-                    json.dumps(data) # this will fail on non-encodable values, like other classes
-                    fields[field] = data
-                except TypeError:
-                    fields[field] = None
-            # a json-encodable dict
-            return fields
-
-        return json.JSONEncoder.default(self, obj)
 class CloudLink():
     CL_VERSION = "1.0.0"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
@@ -81,9 +64,6 @@ class CloudLink():
             x = requests.post(self.CL_API_ENDPOINT+"/resync", json = payload)
             ui.message_notify("Records sent to cloud for processing. Check cloudlink for status")
 
-            
-    
-
     def class_listener(self,args):
         
         keys = self.getEventKeys()
@@ -121,7 +101,6 @@ class CloudLink():
             x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
         else:
             self.logger.warning("Cloud-Link Disabled")
-
 
     def class_heat_delete(self,args):
         keys = self.getEventKeys()
@@ -288,8 +267,7 @@ class CloudLink():
 
             x = requests.post(self.CL_API_ENDPOINT+"/laps", json = payload)
             self.logger.info("Laps sent to cloud")
-
-        
+      
     def results_listener(self,args):
         
         keys = self.getEventKeys()
