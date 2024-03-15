@@ -1,0 +1,13 @@
+{
+    "name": "Cloudlink",
+    "author": "Viki \"Barracuda\" Baarathi",
+    "author_uri": "https://github.com/vikibaarathi",
+    "description": "Instant pilot grouping, channel changes, ranking and tournament bracket visualization platform",
+    "info_uri": "https://github.com/vikibaarathi/RHCloudlink-plugin",
+    "license": "MIT",
+    "license_uri": "https://github.com/vikibaarathi/RHCloudlink-plugin/blob/main/LICENSE",
+    "version": "1.0.0",
+    "required_rhapi_version": "1.0",
+    "update_uri": null,
+    "text_domain": null
+}
