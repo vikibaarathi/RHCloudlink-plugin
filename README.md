@@ -17,6 +17,7 @@ Unzip the folder and rename the folder to `rhcloudlink`.
 Copy the entire folder into the `/src/server/plugins` folder within RotorHazard followed by a restart of the timer.
 
 ### STEP 3
+![Screenshot 2024-04-11 at 9 13 34 PM](https://github.com/vikibaarathi/RHCloudlink-plugin/assets/17153870/2e45eeaa-b3b9-4ed6-9fa7-2c6738c587db)
 
 Once reboot is complete, the startup logs will indiciate if the plugin was successfully initiated. Heading over to the Format page, there will be a new section called "Cloudlink" at the bottom of the page. Key in the the event ID and private key from step 1 and check the enable plugin box. 
 
