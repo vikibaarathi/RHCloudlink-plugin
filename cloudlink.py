@@ -236,7 +236,6 @@ class CloudLink():
             primary_leaderboard = raceresults["meta"]["primary_leaderboard"]
             filteredraceresults = raceresults[primary_leaderboard]
 
-
             #PILOT RUNS BY RACEID
             pilotruns = self._rhapi.db.pilotruns_by_race(raceid)
 
