@@ -14,23 +14,20 @@ Head over to the [releases page](https://github.com/vikibaarathi/RHCloudlink-plu
 
 Unzip the folder and rename the folder to `rhcloudlink`. 
 
-Copy the entire folder into the `/src/server/plugins` folder within RotorHazard followed by a restart of the timer. Details of how plugins work within RotorHazard are described at the [RotorHazard Plugins](https://github.com/RotorHazard/RotorHazard/blob/v4.0.0/doc/Plugins.md) page.
+Copy the entire folder into the `/src/server/plugins` folder within RotorHazard followed by a restart of the timer.
 
 ### STEP 3
 
-![RHCloudlink settings page](https://rh-cloud-link-frontend-2023.s3.ap-southeast-1.amazonaws.com/rhcloudlink-settings-page.png)
-
-Once reboot is complete, the startup logs will indiciate if the plugin was successfully initiated. Heading over to the settings page, there will be a new section called "Cloudlink" at the bottom of the page. Key in the the event ID and private key from step 1 and check the enable plugin box. 
+Once reboot is complete, the startup logs will indiciate if the plugin was successfully initiated. Heading over to the Format page, there will be a new section called "Cloudlink" at the bottom of the page. Key in the the event ID and private key from step 1 and check the enable plugin box. 
 
 For first time setup, the resync button does not need to be pressed. 
 
-Thats it! We are all set. Creating new classes, new heats, seeding pilots, saving races or marshalling races will automatically trigger the plugin to send data to the cloud. 
+Thats it! You are all set. Creating new classes, new heats, seeding pilots, saving races or marshalling races will automatically trigger the plugin to send data to the cloud. 
 
 Take note, the plugin disables itself if:
 * No active internet connection is available.
 * Event ID or Private Key is missing.
 * If a notification pops up indicating a mandatory plugin update is required.
-* Event date of that particular event ID has been passed. 
 
 ## 2.0 Usage 
 
@@ -43,7 +40,7 @@ Cloudlink uses classess to divide the cloud experience. This means a new navigat
 * Classes are created manually.
 * Classes are generated using Generators.
 * Classes are renamed.
-* Resync button pressed in settings page. 
+* Resync button pressed in Format page. 
 
 ### Heats
 
@@ -68,7 +65,7 @@ Cloudlink is also able to tell if a ranking system is being used. Ranking result
 
 ### Resync Function
 
-The plugin "Cloudlink" section in the settings page of RotorHazard, allows race director to resync all classes, heats and results to the cloud. This is a one way up system. Nothing is updated in RotorHazard by the plugin. If this functionality is used, please be patient while RotorHazard empties the cloud database and resends everything. The time it takes will depend on the size of the race. 
+The plugin "Cloudlink" section in the Format page of RotorHazard, allows race director to resync all classes, heats and results to the cloud. This is a one way up system. Nothing is updated in RotorHazard by the plugin. If this functionality is used, please be patient while RotorHazard empties the cloud database and resends everything. The time it takes will depend on the size of the race. 
 
 * Use if for some reason internet was interrupted mid tournament.
 * Race Director forgets to enable the plugin before a race.
