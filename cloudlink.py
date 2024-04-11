@@ -108,6 +108,11 @@ class CloudLink():
         else:
             self.logger.warning("Cloud-Link Disabled")
 
+    def heat_generate(self,args):
+        eventname = args["_eventName"]
+        print(eventname)
+        print(args)
+
     def class_heat_delete(self,args):
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
