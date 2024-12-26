@@ -81,13 +81,17 @@ class CloudLink():
                 classid = args["class_id"]
                 classname = "Class " + str(classid)
                 brackettype = "none"
+                round_type = 0
 
             elif eventname == "classAlter":
                 classid = args["class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
                 classname = raceclass.name
                 brackettype = "check"
-
+                round_type = 0
+                if hasattr(raceclass, "round_type"):
+                    round_type = raceclass.round_type
+                
             elif eventname == "heatGenerate":
                 classid = args["output_class_id"]
                 raceclass = self._rhapi.db.raceclass_by_id(classid)
@@ -96,13 +100,17 @@ class CloudLink():
                 else:
                     classname = raceclass.name
                 brackettype = self.get_brackettype(args)
+                round_type = 0
+                if hasattr(raceclass, "round_type"):
+                    round_type = raceclass.round_type
 
             payload = {
                 "eventid": keys["eventid"],
                 "privatekey": keys["eventkey"],
                 "classid": classid,
                 "classname": classname,
-                "brackettype": brackettype         
+                "brackettype": brackettype,
+                "round_type": round_type         
             }
             x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
         else:
@@ -110,8 +118,6 @@ class CloudLink():
 
     def heat_generate(self,args):
         eventname = args["_eventName"]
-        print(eventname)
-        print(args)
 
     def class_heat_delete(self,args):
         keys = self.getEventKeys()
