@@ -163,6 +163,11 @@ class CloudLink():
         heatname = str(heatobj.name)
         heatid = str(heatobj.id)
 
+        #Set group ID
+        group_id = 0
+        if hasattr(heatobj, "group_id"):
+            group_id = heatobj.group_id
+
         #Default heat name if None
         if heatname == "None" or heatname == "":
             heatname = "Heat " + heatid
@@ -175,6 +180,7 @@ class CloudLink():
             "classname": "unsupported",
             "heatname": heatname,
             "heatid": heatid,
+            "group_id": group_id,
             "slots":[]
         }
         slots = db.slots_by_heat(heatid)
