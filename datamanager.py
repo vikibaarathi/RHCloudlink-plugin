@@ -54,10 +54,14 @@ class ClDataManager():
         clss = self._rhapi.db.raceclasses
         clslist = []
         for cls in clss:
+            round_type = 0
+            if hasattr(cls, "round_type"):
+                round_type = cls.round_type
             clsobj = {
                 "classid": cls.id,
                 "classname": cls.name,
-                "brackettype": "none"  
+                "brackettype": "none",
+                "round_type":round_type  
 
             }
             clslist.append(clsobj)
@@ -142,6 +146,10 @@ class ClDataManager():
         heats = self._rhapi.db.heats
         heatlist = []
         for heat in heats:
+            #Set group ID
+            group_id = 0
+            if hasattr(heat, "group_id"):
+                group_id = heat.group_id
 
             if heat.name == "None" or heat.name == "":
                 heatname = "Heat "+ str(heat.id)
@@ -151,7 +159,8 @@ class ClDataManager():
             heatobj = {
                 "heatid": heat.id,
                 "heatname": heatname,
-                "classid": heat.class_id
+                "classid": heat.class_id,
+                "group_id": group_id
             }
             heatlist.append(heatobj)
         return heatlist
