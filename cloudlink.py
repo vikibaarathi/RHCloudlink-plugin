@@ -6,7 +6,7 @@ from RHUI import UIField, UIFieldType
 from .datamanager import ClDataManager
 
 class CloudLink():
-    CL_VERSION = "1.0.0"
+    CL_VERSION = "1.2.0"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
     CL_FORCEUPDATE = False
 
