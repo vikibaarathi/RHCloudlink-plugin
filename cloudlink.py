@@ -350,7 +350,17 @@ class CloudLink():
                         "total_time": result["total_time"],
                         "average_lap": result["average_lap"],
                         "fastest_lap": result["fastest_lap"],
-                        "method_label": primary_leaderboard
+                        "method_label": primary_leaderboard,
+                        "fastest_lap_source": {
+                            "round": result["fastest_lap_source"]["round"],
+                            "heat": result["fastest_lap_source"]["heat"],
+                            "displayname": result["fastest_lap_source"]["displayname"],
+                        } if "fastest_lap_source" in result else None,
+                        "consecutives_source": {
+                            "round": result["consecutives_source"]["round"],
+                            "heat": result["consecutives_source"]["heat"],
+                            "displayname": result["consecutives_source"]["displayname"],
+                        } if "consecutives_source" in result else None,
                     }
                     resultpayload.append(pilot)
 
@@ -360,6 +370,7 @@ class CloudLink():
                     "ranks": rankpayload,
                     "results": resultpayload
                 }
+
                 x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
                 self.logger.info("Results sent to cloud")
 
