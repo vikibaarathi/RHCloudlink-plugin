@@ -331,6 +331,7 @@ class CloudLink():
 
             db = self._rhapi.db
             fullresults = db.raceclass_results(classid)
+
             if fullresults != None:
                 meta = fullresults["meta"]
                 primary_leaderboard = meta["primary_leaderboard"]         
