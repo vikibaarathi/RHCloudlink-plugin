@@ -6,7 +6,7 @@ from RHUI import UIField, UIFieldType
 from .datamanager import ClDataManager
 
 class CloudLink():
-    CL_VERSION = "1.2.0"
+    CL_VERSION = "1.2.1"
     CL_API_ENDPOINT = "https://api.rhcloudlink.com"
     CL_FORCEUPDATE = False
 
@@ -338,7 +338,6 @@ class CloudLink():
                 filteredresults = fullresults[primary_leaderboard]
 
                 for result in filteredresults:
-
                     pilot = {
                         "classid": classid,
                         "classname": classname,
@@ -356,12 +355,12 @@ class CloudLink():
                             "round": result["fastest_lap_source"]["round"],
                             "heat": result["fastest_lap_source"]["heat"],
                             "displayname": result["fastest_lap_source"]["displayname"],
-                        } if "fastest_lap_source" in result else None,
+                        } if "fastest_lap_source" in result and result["fastest_lap_source"] is not None else None,
                         "consecutives_source": {
                             "round": result["consecutives_source"]["round"],
                             "heat": result["consecutives_source"]["heat"],
                             "displayname": result["consecutives_source"]["displayname"],
-                        } if "consecutives_source" in result else None,
+                        } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
                     }
                     resultpayload.append(pilot)
 

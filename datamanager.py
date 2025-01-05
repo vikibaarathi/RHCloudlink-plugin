@@ -99,12 +99,12 @@ class ClDataManager():
                             "round": result["fastest_lap_source"]["round"],
                             "heat": result["fastest_lap_source"]["heat"],
                             "displayname": result["fastest_lap_source"]["displayname"],
-                        } if "fastest_lap_source" in result else None,
+                        } if "fastest_lap_source" in result and result["fastest_lap_source"] is not None else None,
                         "consecutives_source": {
                             "round": result["consecutives_source"]["round"],
                             "heat": result["consecutives_source"]["heat"],
                             "displayname": result["consecutives_source"]["displayname"],
-                        }
+                        } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
                         
                     }
                     finalresults.append(resultobj)
