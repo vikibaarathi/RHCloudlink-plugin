@@ -10,11 +10,7 @@ Create an event at https://rhcloudlink.com/register. Be sure to keep the event I
 
 ### STEP 2
 
-Head over to the [releases page](https://github.com/vikibaarathi/RHCloudlink-plugin/releases) and download the latest plugin zip. 
-
-Unzip the folder and rename the folder to `rhcloudlink`. 
-
-Copy the entire folder into the `/src/server/plugins` folder within RotorHazard followed by a restart of the timer.
+Install through the "Community Plugins" area within RotorHazard. Alternately, copy the `cloudlink` directory from inside `custom_plugins` into the plugins directory of your RotorHazard data directory.
 
 ### STEP 3
 ![Screenshot 2024-04-11 at 9 13 34 PM](https://github.com/vikibaarathi/RHCloudlink-plugin/assets/17153870/2e45eeaa-b3b9-4ed6-9fa7-2c6738c587db)
