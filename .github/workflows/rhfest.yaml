@@ -1,0 +1,20 @@
+name: RHFest
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  validation:
+    name: Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4.2.2
+
+      - name: Run RHFest validation
+        uses: docker://ghcr.io/rotorhazard/rhfest-action:v2
