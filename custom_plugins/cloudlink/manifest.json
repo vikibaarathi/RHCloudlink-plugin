@@ -1,7 +1,7 @@
 {
     "domain": "cloudlink",
     "name": "Cloudlink",
-    "author" : "Viki \"Barracuda\" Baarathi / J Ro",
+    "author" : "Viki \"Barracuda\" Baarathi",
     "author_uri" : "https://github.com/vikibaarathi",
     "description" : "Instant pilot grouping, channel changes, ranking and tournament bracket visualization platform",
     "documentation_uri": "https://github.com/vikibaarathi/RHCloudlink-plugin/blob/main/README.md",
