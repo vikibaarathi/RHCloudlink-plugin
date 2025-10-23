@@ -23,8 +23,10 @@ class ClDataManager():
         data["heats"] = self.get_heat_list()
         data["frequencies"] = self.get_frequencies_list()
         data["slots"] = self.get_slot_list()
-        #get ranking
+        #get ranking (legacy format)
         data["classranking"] = self.get_class_ranking()
+        #get ranking (new format - whole object)
+        data["classrankingv2"] = self.get_class_ranking_v2()
         #get round results
         data["roundresults"] =  self.get_heat_round_results()
         #get class summary results
@@ -117,36 +119,25 @@ class ClDataManager():
         return overallresults
     
     def get_class_ranking(self):
+        # TODO: Legacy ranking method - currently disabled to avoid conflicts with classrankingv2
+        # Will be updated later to handle migration or removed entirely
+        # For now, return empty structure to maintain payload compatibility
+        return []
+
+    def get_class_ranking_v2(self):
         clss = self._rhapi.db.raceclasses
         overallresults = []
         for cls in clss:
-            finalresults = []
             classid = cls.id
             classresults = self._rhapi.db.raceclass_ranking(classid)
-            if classresults != None:
-                if isinstance(classresults, bool) and classresults is False:
-                    finalresults = []
-                else:
-                    meta = classresults["meta"]
-                    primary_leaderboard = meta["method_label"]   
-      
-                    filteredresults = classresults["ranking"]
-                    
-                    for result in filteredresults:
-
-                        resultobj = {
-                            "classid": classid,
-                            "pilot_id": result["pilot_id"],
-                            "callsign": result["callsign"],
-                            "position": result["position"],
-                            "heat": result["heat"],
-                            "method_label": primary_leaderboard
-                        }
-                        finalresults.append(resultobj)
+            
+            # Send entire ranking object without filtering, matching cloudlink.py approach
+            # Handle both None and False cases - use empty dict for consistent structure
+            ranking_data = classresults if (classresults is not None and classresults is not False) else {}
 
             thisclassresults = {
                 "classid": classid,
-                "classresults": finalresults
+                "ranking": ranking_data
             }
             overallresults.append(thisclassresults)
         return overallresults

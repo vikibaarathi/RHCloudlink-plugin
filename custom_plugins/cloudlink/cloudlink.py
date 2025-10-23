@@ -301,33 +301,13 @@ class CloudLink():
         raceclass = self._rhapi.db.raceclass_by_id(classid)
         classname = raceclass.name
         ranking = raceclass.ranking
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+        
+        if self.isConnected() and keys["notempty"]:
 
-            rankpayload = []
-            resultpayload = []
-
-            if ranking != None:
-                if isinstance(ranking, bool) and ranking is False:
-
-                    rankpayload = []
-
-                else:
-
-                    meta = ranking["meta"]
-                    method_label = meta["method_label"]
-                    ranks = ranking["ranking"]
-                    for rank in ranks:
-                        pilot = {
-                            "classid": classid,
-                            "classname": classname,
-                            "pilot_id": rank["pilot_id"],
-                            "callsign": rank["callsign"],
-                            "position": rank["position"],
-                            "heat": rank["heat"],
-                            "method_label": method_label
-
-                        }
-                        rankpayload.append(pilot)     
+            # Send entire ranking object without filtering
+            # Handle both None and False cases - use empty dict for consistent structure
+            rankpayload = ranking if (ranking is not None and ranking is not False) else {}
+            resultpayload = []     
 
             db = self._rhapi.db
             fullresults = db.raceclass_results(classid)
@@ -371,7 +351,7 @@ class CloudLink():
                     "results": resultpayload
                 }
 
-                x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
+                x = requests.post(self.CL_API_ENDPOINT+"/v2/results", json = payload)
                 self.logger.info("Results sent to cloud")
 
             else:
