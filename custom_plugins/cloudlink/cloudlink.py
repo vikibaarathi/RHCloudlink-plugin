@@ -373,7 +373,7 @@ class CloudLink():
                     self.logger.info(f"Payload keys: {list(payload.keys()) if isinstance(payload, dict) else 'Not a dict'}")
                 self.logger.info("=== END DEBUG ===")
 
-                #x = requests.post(self.CL_API_ENDPOINT+"/results", json = payload)
+                x = requests.post(self.CL_API_ENDPOINT+"/v2/results", json = payload)
                 self.logger.info("Results sent to cloud")
 
             else:
