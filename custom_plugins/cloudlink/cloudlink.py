@@ -302,18 +302,6 @@ class CloudLink():
         classname = raceclass.name
         ranking = raceclass.ranking
         
-        # DEBUG: Print ranking structure to console
-        self.logger.info("=== DEBUG: raceclass.ranking analysis ===")
-        self.logger.info(f"Type of ranking: {type(ranking)}")
-        self.logger.info(f"Ranking value: {ranking}")
-        if ranking is not None and not isinstance(ranking, bool):
-            try:
-                import json
-                self.logger.info(f"Ranking JSON structure: {json.dumps(ranking, indent=2, default=str)}")
-            except Exception as e:
-                self.logger.info(f"Could not serialize ranking to JSON: {e}")
-        self.logger.info("=== END DEBUG ===")
-        
         if self.isConnected() and keys["notempty"]:
 
             # Send entire ranking object without filtering
@@ -362,16 +350,6 @@ class CloudLink():
                     "ranks": rankpayload,
                     "results": resultpayload
                 }
-
-                # DEBUG: Print complete payload structure
-                self.logger.info("=== DEBUG: Complete payload to /results endpoint ===")
-                try:
-                    import json
-                    self.logger.info(f"Payload JSON structure: {json.dumps(payload, indent=2, default=str)}")
-                except Exception as e:
-                    self.logger.info(f"Could not serialize payload to JSON: {e}")
-                    self.logger.info(f"Payload keys: {list(payload.keys()) if isinstance(payload, dict) else 'Not a dict'}")
-                self.logger.info("=== END DEBUG ===")
 
                 x = requests.post(self.CL_API_ENDPOINT+"/v2/results", json = payload)
                 self.logger.info("Results sent to cloud")
