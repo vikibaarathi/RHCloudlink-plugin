@@ -1,0 +1,9 @@
+# Config file — contains environment-specific API endpoint
+# Never commit this. Copy config.example.py to config.py to configure.
+custom_plugins/cloudlink/config.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
