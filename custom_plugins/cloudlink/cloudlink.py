@@ -4,10 +4,14 @@ import logging
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType
 from .datamanager import ClDataManager
+try:
+    from .config import CL_API_ENDPOINT as _CONFIGURED_ENDPOINT
+except ImportError:
+    _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
 
 class CloudLink():
     CL_VERSION = "1.2.1"
-    CL_API_ENDPOINT = "https://api.rhcloudlink.com"
+    CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
     def __init__(self,rhapi):
