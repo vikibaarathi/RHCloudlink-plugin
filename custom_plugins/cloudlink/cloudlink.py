@@ -194,12 +194,12 @@ class CloudLink():
 
             if slot.node_index is not None:
 
-                channel = racechannels[slot.node_index] 
+                channel = racechannels[slot.node_index] if slot.node_index < len(racechannels) else "0"
                 pilotcallsign = "-"
                 if slot.pilot_id != 0:
-                                        
                     pilot = db.pilot_by_id(slot.pilot_id)
-                    pilotcallsign = pilot.callsign
+                    if pilot is not None:
+                        pilotcallsign = pilot.callsign
                 thisslot = {
                     "nodeindex": slot.node_index,
                     "channel": channel,
