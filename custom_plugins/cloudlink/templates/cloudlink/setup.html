@@ -330,6 +330,11 @@
         <input type="text" id="eventname" placeholder="e.g. UGKL Drone Race Round 3" />
       </div>
 
+      <div class="cl-field">
+        <label>Your Email *</label>
+        <input type="text" id="emailid" placeholder="e.g. racedirector@example.com" />
+      </div>
+
       <div class="cl-row">
         <div class="cl-field">
           <label>Date</label>
@@ -490,8 +495,13 @@
 
   function submitRegistration() {
     var eventname = document.getElementById('eventname').value.trim();
+    var emailid   = document.getElementById('emailid').value.trim();
     if (!eventname) {
       showStatus('Event name is required.', 'error');
+      return;
+    }
+    if (!emailid) {
+      showStatus('Email address is required.', 'error');
       return;
     }
 
@@ -500,6 +510,7 @@
 
     var formData = new FormData();
     formData.append('eventname',    eventname);
+    formData.append('emailid',      emailid);
     formData.append('eventdate',    document.getElementById('eventdate').value);
     formData.append('eventcity',    document.getElementById('eventcity').value.trim());
     formData.append('eventcountry', document.getElementById('eventcountry').value.trim());
@@ -553,6 +564,7 @@
     document.getElementById('success-state').style.display = 'none';
     document.getElementById('register-form-section').style.display = 'block';
     document.getElementById('eventname').value = '';
+    document.getElementById('emailid').value = '';
     document.getElementById('eventdate').value = '';
     document.getElementById('eventcity').value = '';
     document.getElementById('eventcountry').value = '';
