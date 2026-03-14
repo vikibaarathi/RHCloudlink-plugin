@@ -110,24 +110,24 @@ def create_blueprint(rhapi):
                         image_file = None  # skip upload if nothing selected
 
                 elif image_mode == 'rh_logo':
-                    # Read the RH logo SVG from the static files on disk
-                    rh_logo_path = os.path.join(
-                        os.path.dirname(__file__), '..', '..', '..', '..', 'src', 'server',
-                        'static', 'image', 'RotorHazard Logo.svg'
-                    )
-                    rh_logo_path = os.path.normpath(rh_logo_path)
-                    if os.path.exists(rh_logo_path):
-                        with open(rh_logo_path, 'rb') as f:
-                            image_file = f.read()
-                        content_type = 'image/svg+xml'
-                    else:
-                        logger.warning('[CloudLink] RH logo file not found, skipping image upload')
+                    # Fetch the RH logo from the local server using the same host:port
+                    # request.host_url gives e.g. "http://localhost:5005/"
+                    try:
+                        logo_url = request.host_url.rstrip('/') + '/static/image/RotorHazard Logo.svg'
+                        logo_resp = requests.get(logo_url, timeout=5)
+                        if logo_resp.status_code == 200:
+                            image_file = logo_resp.content
+                            content_type = 'image/svg+xml'
+                        else:
+                            logger.warning(f'[CloudLink] Could not fetch RH logo (HTTP {logo_resp.status_code}), skipping image upload')
+                    except Exception as e:
+                        logger.warning(f'[CloudLink] RH logo fetch failed: {e}, skipping image upload')
 
                 if image_file is not None:
-                    # Get presigned URL
+                    # Get presigned URL — API expects contentType in JSON body
                     url_resp = requests.post(
                         f'{CL_API_ENDPOINT}/event/{event_id}/upload-url',
-                        params={'content-type': content_type},
+                        json={'contentType': content_type},
                         headers={'X-Private-Key': priv_key},
                         timeout=10
                     )
