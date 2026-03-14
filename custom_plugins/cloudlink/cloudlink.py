@@ -59,24 +59,17 @@ class CloudLink():
         ui.register_panel("cloud-link", "Cloudlink", "format")
         ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_new)
 
-        # Setup link — shown at the top of the panel
+        # Setup link — styled to match native RH quickbuttons
         keys = self.getEventKeys()
         if keys["notempty"]:
-            setup_link_md = (
-                '<a href="/cloudlink/setup" target="_self" '
-                'style="display:inline-block;padding:6px 14px;background:#ee7a28;'
-                'color:#fff;border-radius:4px;font-size:0.85rem;font-weight:600;'
-                'text-decoration:none;">⚙️ Edit / Re-register Event</a>'
-            )
+            label = "Edit / Re-register Event"
         else:
-            setup_link_md = (
-                '<a href="/cloudlink/setup" target="_self" '
-                'style="display:inline-block;padding:6px 14px;background:#ee7a28;'
-                'color:#fff;border-radius:4px;font-size:0.85rem;font-weight:600;'
-                'text-decoration:none;">🚀 Register New Event</a>'
-                '<p style="font-size:0.78rem;color:#9ab;margin:6px 0 0;">'
-                'Or enter keys manually below.</p>'
-            )
+            label = "Register New Event"
+        setup_link_md = (
+            '<div class="control-set">'
+            f'<a href="/cloudlink/setup" class="button-like" target="_self">{label}</a>'
+            '</div>'
+        )
         ui.register_markdown("cloud-link", "cl-setup-link", setup_link_md)
 
         cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloudlink server.")
