@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudLink — Event Setup</title>
+
+  <!-- Reuse RotorHazard's stylesheet -->
+  <link rel="stylesheet" href="/static/rotorhazard.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/image/favicon-32x32.png">
+
+  <style>
+    /* ── Page layout ── */
+    body { padding: 0; margin: 0; }
+
+    .cl-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 2px solid var(--color-interface-border, #2a4a6b);
+      background: var(--color-panel-bg, #1a3550);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .cl-header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cl-header-title h1 {
+      font-size: 1.3rem;
+      margin: 0;
+      color: var(--color-text-heading, #fff);
+      letter-spacing: 0.03em;
+    }
+    .cl-badge {
+      font-size: 0.65rem;
+      background: #ee7a28;
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .cl-back-link {
+      font-size: 0.85rem;
+      color: #ee7a28;
+      text-decoration: none;
+    }
+    .cl-back-link:hover { text-decoration: underline; }
+
+    /* ── Main container ── */
+    .cl-container {
+      max-width: 680px;
+      margin: 32px auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Section cards ── */
+    .cl-card {
+      background: var(--color-panel-bg, #1e3d5c);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 6px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .cl-card h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ee7a28;
+      margin: 0 0 18px;
+    }
+
+    /* ── Form fields ── */
+    .cl-field { margin-bottom: 16px; }
+    .cl-field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary, #9ab);
+      margin-bottom: 5px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .cl-field input[type="text"],
+    .cl-field input[type="date"],
+    .cl-field input[type="url"],
+    .cl-field textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--color-input-bg, #132d45);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px;
+      color: var(--color-text, #dde);
+      padding: 9px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .cl-field input:focus,
+    .cl-field textarea:focus {
+      border-color: #ee7a28;
+    }
+    .cl-field textarea { resize: vertical; min-height: 80px; }
+    .cl-row { display: flex; gap: 16px; }
+    .cl-row .cl-field { flex: 1; }
+
+    /* ── Image options ── */
+    .cl-img-options { display: flex; flex-direction: column; gap: 12px; }
+    .cl-img-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .cl-img-option:hover { border-color: #ee7a28; }
+    .cl-img-option.selected {
+      border-color: #ee7a28;
+      background: rgba(238,122,40,0.07);
+    }
+    .cl-img-option input[type="radio"] { margin-top: 3px; accent-color: #ee7a28; }
+    .cl-img-option-body { flex: 1; }
+    .cl-img-option-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text, #dde);
+      margin-bottom: 4px;
+    }
+    .cl-img-option-desc {
+      font-size: 0.78rem;
+      color: var(--color-text-secondary, #9ab);
+    }
+    .cl-img-option-input { margin-top: 10px; display: none; }
+    .cl-img-option-input.visible { display: block; }
+
+    /* RH logo preview */
+    .cl-rh-logo-preview {
+      width: 80px;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+    .selected .cl-rh-logo-preview { opacity: 1; }
+
+    /* File input styling */
+    .cl-file-input {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--color-input-bg, #132d45);
+      border: 1px dashed var(--color-interface-border, #2a4a6b);
+      border-radius: 4px;
+      color: var(--color-text, #dde);
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .cl-file-hint {
+      font-size: 0.72rem;
+      color: var(--color-text-secondary, #9ab);
+      margin-top: 5px;
+    }
+
+    /* ── Buttons ── */
+    .cl-btn {
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, background 0.15s;
+      font-family: inherit;
+      letter-spacing: 0.03em;
+    }
+    .cl-btn-primary {
+      background: #ee7a28;
+      color: #fff;
+    }
+    .cl-btn-primary:hover { opacity: 0.88; }
+    .cl-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cl-btn-secondary {
+      background: transparent;
+      color: #ee7a28;
+      border: 1px solid #ee7a28;
+    }
+    .cl-btn-secondary:hover { background: rgba(238,122,40,0.1); }
+    .cl-btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    /* ── Existing keys card ── */
+    .cl-keys-grid { display: flex; flex-direction: column; gap: 12px; }
+    .cl-key-item label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--color-text-secondary, #9ab);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .cl-key-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cl-key-box {
+      flex: 1;
+      background: var(--color-input-bg, #132d45);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 1rem;
+      color: #ee7a28;
+      letter-spacing: 0.08em;
+    }
+    .cl-copy-btn {
+      background: none;
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px;
+      color: var(--color-text-secondary, #9ab);
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    .cl-copy-btn:hover { border-color: #ee7a28; color: #ee7a28; }
+
+    /* ── Success state ── */
+    #success-state { display: none; }
+    .cl-success-icon {
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .cl-success-message {
+      text-align: center;
+      color: var(--color-text-secondary, #9ab);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+    .cl-success-message strong { color: var(--color-text, #dde); }
+
+    /* ── Status message ── */
+    .cl-status {
+      font-size: 0.85rem;
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-top: 14px;
+      display: none;
+    }
+    .cl-status.error { background: rgba(200,60,60,0.15); border: 1px solid rgba(200,60,60,0.4); color: #f88; }
+    .cl-status.info  { background: rgba(238,122,40,0.1);  border: 1px solid rgba(238,122,40,0.3); color: #ee7a28; }
+
+    /* ── Spinner ── */
+    .cl-spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .cl-btn.loading .cl-spinner { display: inline-block; }
+    .cl-btn.loading .cl-btn-text { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="cl-header">
+  <div class="cl-header-title">
+    <h1>CloudLink <span class="cl-badge">Event Setup</span></h1>
+  </div>
+  <a class="cl-back-link" href="/format">← Back to Format</a>
+</div>
+
+<div class="cl-container">
+
+  <!-- ── EXISTING KEYS (shown if already registered) ── -->
+  {% if eventid and eventkey %}
+  <div class="cl-card" id="existing-keys-card">
+    <h2>✅ Event Already Registered</h2>
+    <div class="cl-keys-grid">
+      <div class="cl-key-item">
+        <label>Event ID</label>
+        <div class="cl-key-value">
+          <div class="cl-key-box" id="display-eventid">{{ eventid }}</div>
+          <button class="cl-copy-btn" onclick="copyText('{{ eventid }}', this)">Copy</button>
+        </div>
+      </div>
+      <div class="cl-key-item">
+        <label>Private Key</label>
+        <div class="cl-key-value">
+          <div class="cl-key-box" id="display-eventkey">{{ eventkey }}</div>
+          <button class="cl-copy-btn" onclick="copyText('{{ eventkey }}', this)">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div class="cl-btn-row" style="margin-top: 20px;">
+      <a class="cl-btn cl-btn-primary" href="/format">Done — Back to Format</a>
+      <button class="cl-btn cl-btn-secondary" onclick="showRegisterForm()">Register a Different Event</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── REGISTRATION FORM ── -->
+  <div id="register-form-section" {% if eventid and eventkey %}style="display:none"{% endif %}>
+
+    <!-- Event Details -->
+    <div class="cl-card">
+      <h2>Event Details</h2>
+
+      <div class="cl-field">
+        <label>Event Name *</label>
+        <input type="text" id="eventname" placeholder="e.g. UGKL Drone Race Round 3" />
+      </div>
+
+      <div class="cl-row">
+        <div class="cl-field">
+          <label>Date</label>
+          <input type="date" id="eventdate" />
+        </div>
+        <div class="cl-field">
+          <label>City</label>
+          <input type="text" id="eventcity" placeholder="e.g. Kuala Lumpur" />
+        </div>
+      </div>
+
+      <div class="cl-field">
+        <label>Country</label>
+        <input type="text" id="eventcountry" placeholder="e.g. Malaysia" />
+      </div>
+
+      <div class="cl-field">
+        <label>Description</label>
+        <textarea id="eventdesc" placeholder="Tell pilots what this event is about..."></textarea>
+      </div>
+    </div>
+
+    <!-- Image -->
+    <div class="cl-card">
+      <h2>Event Image</h2>
+      <div class="cl-img-options">
+
+        <!-- Option 1: RH Logo -->
+        <div class="cl-img-option selected" id="opt-rh-logo" onclick="selectImageMode('rh_logo')">
+          <input type="radio" name="image_mode" value="rh_logo" checked>
+          <div class="cl-img-option-body">
+            <div class="cl-img-option-label">Use RotorHazard Logo</div>
+            <div class="cl-img-option-desc">Uses the RotorHazard logo as the event image.</div>
+            <img src="/static/image/RotorHazard Logo.svg" class="cl-rh-logo-preview" alt="RotorHazard Logo">
+          </div>
+        </div>
+
+        <!-- Option 2: Upload file -->
+        <div class="cl-img-option" id="opt-upload" onclick="selectImageMode('upload')">
+          <input type="radio" name="image_mode" value="upload">
+          <div class="cl-img-option-body">
+            <div class="cl-img-option-label">Upload a File</div>
+            <div class="cl-img-option-desc">Upload a poster or chapter logo from this timer machine.</div>
+            <div class="cl-img-option-input" id="upload-input">
+              <input type="file" id="image_file" class="cl-file-input" accept="image/jpeg,image/png,image/webp,image/svg+xml" onclick="event.stopPropagation()">
+              <div class="cl-file-hint">JPEG, PNG, WebP or SVG · Max 5 MB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option 3: URL -->
+        <div class="cl-img-option" id="opt-url" onclick="selectImageMode('url')">
+          <input type="radio" name="image_mode" value="url">
+          <div class="cl-img-option-body">
+            <div class="cl-img-option-label">Enter a URL</div>
+            <div class="cl-img-option-desc">Link directly to an image hosted online.</div>
+            <div class="cl-img-option-input" id="url-input">
+              <input type="url" id="image_url" placeholder="https://example.com/poster.jpg" onclick="event.stopPropagation()">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="cl-card">
+      <div class="cl-btn-row">
+        <button class="cl-btn cl-btn-primary" id="register-btn" onclick="submitRegistration()">
+          <span class="cl-spinner"></span>
+          <span class="cl-btn-text">Register Event</span>
+        </button>
+        {% if eventid and eventkey %}
+        <button class="cl-btn cl-btn-secondary" onclick="cancelRegister()">Cancel</button>
+        {% endif %}
+      </div>
+      <div class="cl-status" id="status-msg"></div>
+    </div>
+
+  </div><!-- /register-form-section -->
+
+  <!-- ── SUCCESS STATE ── -->
+  <div id="success-state">
+    <div class="cl-card">
+      <div class="cl-success-icon">🎉</div>
+      <div class="cl-success-message">
+        Event registered! Your keys have been saved to the timer automatically.<br>
+        <strong>Head back to the Format page to start racing.</strong>
+      </div>
+      <div class="cl-keys-grid">
+        <div class="cl-key-item">
+          <label>Event ID</label>
+          <div class="cl-key-value">
+            <div class="cl-key-box" id="new-eventid">—</div>
+            <button class="cl-copy-btn" onclick="copyText(document.getElementById('new-eventid').textContent, this)">Copy</button>
+          </div>
+        </div>
+        <div class="cl-key-item">
+          <label>Private Key</label>
+          <div class="cl-key-value">
+            <div class="cl-key-box" id="new-eventkey">—</div>
+            <button class="cl-copy-btn" onclick="copyText(document.getElementById('new-eventkey').textContent, this)">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="cl-btn-row" style="margin-top: 24px;">
+        <a class="cl-btn cl-btn-primary" href="/format">Done — Back to Format</a>
+        <button class="cl-btn cl-btn-secondary" onclick="registerAnother()">Register Another</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cl-container -->
+
+<script>
+  var currentImageMode = 'rh_logo';
+
+  function selectImageMode(mode) {
+    currentImageMode = mode;
+    ['rh_logo', 'upload', 'url'].forEach(function(m) {
+      var optEl = document.getElementById('opt-' + m);
+      var radio = optEl.querySelector('input[type="radio"]');
+      if (m === mode) {
+        optEl.classList.add('selected');
+        radio.checked = true;
+      } else {
+        optEl.classList.remove('selected');
+        radio.checked = false;
+      }
+    });
+    // show/hide sub-inputs
+    var uploadInput = document.getElementById('upload-input');
+    var urlInput = document.getElementById('url-input');
+    uploadInput.classList.toggle('visible', mode === 'upload');
+    urlInput.classList.toggle('visible', mode === 'url');
+  }
+
+  function showStatus(msg, type) {
+    var el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.className = 'cl-status ' + type;
+    el.style.display = 'block';
+  }
+  function hideStatus() {
+    document.getElementById('status-msg').style.display = 'none';
+  }
+
+  function setLoading(loading) {
+    var btn = document.getElementById('register-btn');
+    if (loading) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+    } else {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  function submitRegistration() {
+    var eventname = document.getElementById('eventname').value.trim();
+    if (!eventname) {
+      showStatus('Event name is required.', 'error');
+      return;
+    }
+
+    hideStatus();
+    setLoading(true);
+
+    var formData = new FormData();
+    formData.append('eventname',    eventname);
+    formData.append('eventdate',    document.getElementById('eventdate').value);
+    formData.append('eventcity',    document.getElementById('eventcity').value.trim());
+    formData.append('eventcountry', document.getElementById('eventcountry').value.trim());
+    formData.append('eventdesc',    document.getElementById('eventdesc').value.trim());
+    formData.append('image_mode',   currentImageMode);
+
+    if (currentImageMode === 'upload') {
+      var fileInput = document.getElementById('image_file');
+      if (fileInput.files.length > 0) {
+        formData.append('image_file', fileInput.files[0]);
+      }
+    } else if (currentImageMode === 'url') {
+      formData.append('image_url', document.getElementById('image_url').value.trim());
+    }
+
+    fetch('/cloudlink/register', {
+      method: 'POST',
+      body: formData
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      setLoading(false);
+      if (data.success) {
+        document.getElementById('new-eventid').textContent  = data.eventid;
+        document.getElementById('new-eventkey').textContent = data.privatekey;
+        document.getElementById('register-form-section').style.display = 'none';
+        var existingCard = document.getElementById('existing-keys-card');
+        if (existingCard) existingCard.style.display = 'none';
+        document.getElementById('success-state').style.display = 'block';
+      } else {
+        showStatus('Error: ' + (data.error || 'Registration failed'), 'error');
+      }
+    })
+    .catch(function(err) {
+      setLoading(false);
+      showStatus('Network error. Check the timer connection.', 'error');
+    });
+  }
+
+  function showRegisterForm() {
+    document.getElementById('existing-keys-card').style.display = 'none';
+    document.getElementById('register-form-section').style.display = 'block';
+  }
+
+  function cancelRegister() {
+    document.getElementById('register-form-section').style.display = 'none';
+    document.getElementById('existing-keys-card').style.display = 'block';
+  }
+
+  function registerAnother() {
+    document.getElementById('success-state').style.display = 'none';
+    document.getElementById('register-form-section').style.display = 'block';
+    document.getElementById('eventname').value = '';
+    document.getElementById('eventdate').value = '';
+    document.getElementById('eventcity').value = '';
+    document.getElementById('eventcountry').value = '';
+    document.getElementById('eventdesc').value = '';
+    selectImageMode('rh_logo');
+  }
+
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    });
+  }
+
+  // Init: set default date to today
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('eventdate').value = today;
+</script>
+
+</body>
+</html>

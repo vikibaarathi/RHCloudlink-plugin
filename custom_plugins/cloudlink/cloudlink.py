@@ -4,6 +4,7 @@ import logging
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType
 from .datamanager import ClDataManager
+from .setup_blueprint import create_blueprint
 try:
     from .config import CL_API_ENDPOINT as _CONFIGURED_ENDPOINT
 except ImportError:
@@ -18,6 +19,14 @@ class CloudLink():
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
         self.cldatamanger = ClDataManager(self._rhapi)
+
+        # Register the setup Blueprint immediately (before STARTUP fires)
+        try:
+            bp = create_blueprint(self._rhapi)
+            self._rhapi.ui.blueprint_add(bp)
+            self.logger.info("CloudLink setup blueprint registered at /cloudlink/setup")
+        except Exception as e:
+            self.logger.error(f"CloudLink: failed to register blueprint: {e}")
         
     def init_plugin(self,args):
 
@@ -50,9 +59,29 @@ class CloudLink():
         ui.register_panel("cloud-link", "Cloudlink", "format")
         ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_new)
 
+        # Setup link — shown at the top of the panel
+        keys = self.getEventKeys()
+        if keys["notempty"]:
+            setup_link_md = (
+                '<a href="/cloudlink/setup" target="_self" '
+                'style="display:inline-block;padding:6px 14px;background:#ee7a28;'
+                'color:#fff;border-radius:4px;font-size:0.85rem;font-weight:600;'
+                'text-decoration:none;">⚙️ Edit / Re-register Event</a>'
+            )
+        else:
+            setup_link_md = (
+                '<a href="/cloudlink/setup" target="_self" '
+                'style="display:inline-block;padding:6px 14px;background:#ee7a28;'
+                'color:#fff;border-radius:4px;font-size:0.85rem;font-weight:600;'
+                'text-decoration:none;">🚀 Register New Event</a>'
+                '<p style="font-size:0.78rem;color:#9ab;margin:6px 0 0;">'
+                'Or enter keys manually below.</p>'
+            )
+        ui.register_markdown("cloud-link", "cl-setup-link", setup_link_md)
+
         cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloudlink server.")
-        cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at rhcloudlink.com")
-        cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Authentication key provided by Cloudlink during event registration.")
+        cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Auto-populated after registration, or enter manually.")
+        cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Auto-populated after registration, or enter manually.")
 
         fields = self._rhapi.fields
         fields.register_option(cl_enableplugin, "cloud-link")
