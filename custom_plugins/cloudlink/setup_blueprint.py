@@ -162,8 +162,8 @@ def create_blueprint(rhapi):
                         logger.warning(f'[CloudLink] Could not get presigned URL ({url_resp.status_code}), continuing without image')
 
             # ── Step 4: Save keys to RH ─────────────────────────────────
-            rhapi.db.set_option('cl-event-id', event_id)
-            rhapi.db.set_option('cl-event-key', priv_key)
+            rhapi.db.option_set('cl-event-id', event_id)
+            rhapi.db.option_set('cl-event-key', priv_key)
 
             logger.info(f'[CloudLink] Event registered: {event_id} for "{event_name}"')
 
@@ -187,8 +187,8 @@ def create_blueprint(rhapi):
     # ------------------------------------------------------------------
     @bp.route('/clear-keys', methods=['POST'])
     def clear_keys():
-        rhapi.db.set_option('cl-event-id', '')
-        rhapi.db.set_option('cl-event-key', '')
+        rhapi.db.option_set('cl-event-id', '')
+        rhapi.db.option_set('cl-event-key', '')
         return jsonify({'success': True})
 
     return bp
