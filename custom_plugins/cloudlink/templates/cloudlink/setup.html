@@ -161,6 +161,21 @@
       font-size: 0.9rem;
       cursor: pointer;
     }
+    .cl-field select {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--color-input-bg, #132d45);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px;
+      color: var(--color-text, #dde);
+      padding: 9px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+    }
+    .cl-field select:focus { border-color: #ee7a28; }
     .cl-file-hint {
       font-size: 0.72rem;
       color: var(--color-text-secondary, #9ab);
@@ -346,9 +361,18 @@
         </div>
       </div>
 
-      <div class="cl-field">
-        <label>Country</label>
-        <input type="text" id="eventcountry" placeholder="e.g. Malaysia" />
+      <div class="cl-row">
+        <div class="cl-field">
+          <label>Country</label>
+          <input type="text" id="eventcountry" placeholder="e.g. Malaysia" />
+        </div>
+        <div class="cl-field">
+          <label>Event Visibility</label>
+          <select id="eventpublic">
+            <option value="private">🔒 Private — invite only</option>
+            <option value="public">🌐 Public — listed on CloudLink</option>
+          </select>
+        </div>
       </div>
 
       <div class="cl-field">
@@ -515,6 +539,7 @@
     formData.append('eventcity',    document.getElementById('eventcity').value.trim());
     formData.append('eventcountry', document.getElementById('eventcountry').value.trim());
     formData.append('eventdesc',    document.getElementById('eventdesc').value.trim());
+    formData.append('eventpublic',  document.getElementById('eventpublic').value);
     formData.append('image_mode',   currentImageMode);
 
     if (currentImageMode === 'upload') {
@@ -568,6 +593,7 @@
     document.getElementById('eventdate').value = '';
     document.getElementById('eventcity').value = '';
     document.getElementById('eventcountry').value = '';
+    document.getElementById('eventpublic').value = 'private';
     document.getElementById('eventdesc').value = '';
     selectImageMode('rh_logo');
   }

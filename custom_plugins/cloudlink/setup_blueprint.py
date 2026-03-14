@@ -49,6 +49,7 @@ def create_blueprint(rhapi):
             event_country = request.form.get('eventcountry', '').strip()
             event_desc    = request.form.get('eventdesc', '').strip()
             email_id      = request.form.get('emailid', '').strip()
+            event_public  = request.form.get('eventpublic', 'private').strip()
             image_mode    = request.form.get('image_mode', 'rh_logo')
             image_url     = request.form.get('image_url', '').strip()
 
@@ -72,7 +73,7 @@ def create_blueprint(rhapi):
                 'eventcity':    event_city,
                 'eventcountry': event_country,
                 'eventdesc':    event_desc,
-                'eventpublic':  'private',
+                'eventpublic':  event_public if event_public in ('public', 'private') else 'private',
             }
             if initial_logo_url:
                 payload['eventlogourl'] = initial_logo_url
