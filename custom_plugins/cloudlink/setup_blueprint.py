@@ -43,13 +43,14 @@ def create_blueprint(rhapi):
     @bp.route('/register', methods=['POST'])
     def register():
         try:
-            event_name    = request.form.get('eventname', '').strip()
-            event_date    = request.form.get('eventdate', '').strip()
-            event_city    = request.form.get('eventcity', '').strip()
-            event_country = request.form.get('eventcountry', '').strip()
-            event_desc    = request.form.get('eventdesc', '').strip()
-            email_id      = request.form.get('emailid', '').strip()
-            event_public  = request.form.get('eventpublic', 'private').strip()
+            event_name     = request.form.get('eventname', '').strip()
+            event_date     = request.form.get('eventdate', '').strip()
+            event_end_date = request.form.get('eventenddate', '').strip() or event_date
+            event_city     = request.form.get('eventcity', '').strip()
+            event_country  = request.form.get('eventcountry', '').strip()
+            event_desc     = request.form.get('eventdesc', '').strip()
+            email_id       = request.form.get('emailid', '').strip()
+            event_public   = request.form.get('eventpublic', 'private').strip()
             image_mode    = request.form.get('image_mode', 'rh_logo')
             image_url     = request.form.get('image_url', '').strip()
 
@@ -67,13 +68,14 @@ def create_blueprint(rhapi):
 
             # ── Step 2: Register the event ──────────────────────────────
             payload = {
-                'emailid':      email_id,
-                'eventname':    event_name,
-                'eventdate':    event_date,
-                'eventcity':    event_city,
-                'eventcountry': event_country,
-                'eventdesc':    event_desc,
-                'eventpublic':  event_public if event_public in ('public', 'private') else 'private',
+                'emailid':       email_id,
+                'eventname':     event_name,
+                'eventdate':     event_date,
+                'eventenddate':  event_end_date,
+                'eventcity':     event_city,
+                'eventcountry':  event_country,
+                'eventdesc':     event_desc,
+                'eventpublic':   event_public if event_public in ('public', 'private') else 'private',
             }
             if initial_logo_url:
                 payload['eventlogourl'] = initial_logo_url
@@ -98,44 +100,34 @@ def create_blueprint(rhapi):
             # ── Step 3: Handle image upload (file or RH logo) ───────────
             final_logo_url = initial_logo_url  # already set for URL mode
 
-            if image_mode in ('upload', 'rh_logo'):
+            if image_mode == 'upload':
                 image_file = None
-                content_type = 'image/svg+xml'
+                content_type = 'image/jpeg'
 
-                if image_mode == 'upload':
-                    image_file = request.files.get('image_file')
-                    if image_file and image_file.filename:
-                        content_type = image_file.content_type or 'image/jpeg'
+                uploaded = request.files.get('image_file')
+                if uploaded and uploaded.filename:
+                    content_type = uploaded.content_type or 'image/jpeg'
+                    # Presign endpoint only accepts jpeg/png/webp
+                    if content_type not in ('image/jpeg', 'image/png', 'image/webp'):
+                        logger.warning(f'[CloudLink] Unsupported file type {content_type}, skipping image upload')
                     else:
-                        image_file = None  # skip upload if nothing selected
+                        image_file = uploaded
 
-                elif image_mode == 'rh_logo':
-                    # Fetch the RH logo from the local server using the same host:port
-                    # request.host_url gives e.g. "http://localhost:5005/"
-                    try:
-                        logo_url = request.host_url.rstrip('/') + '/static/image/RotorHazard Logo.svg'
-                        logo_resp = requests.get(logo_url, timeout=5)
-                        if logo_resp.status_code == 200:
-                            image_file = logo_resp.content
-                            content_type = 'image/svg+xml'
-                        else:
-                            logger.warning(f'[CloudLink] Could not fetch RH logo (HTTP {logo_resp.status_code}), skipping image upload')
-                    except Exception as e:
-                        logger.warning(f'[CloudLink] RH logo fetch failed: {e}, skipping image upload')
+            if image_mode in ('upload',):  # rh_logo mode skips upload (uses API default)
 
                 if image_file is not None:
-                    # Get presigned URL — API expects contentType in JSON body
+                    # Get presigned URL via new endpoint — no auth required
+                    file_name = getattr(image_file, 'filename', 'image.jpg') if not isinstance(image_file, bytes) else 'image.svg'
                     url_resp = requests.post(
-                        f'{CL_API_ENDPOINT}/event/{event_id}/upload-url',
-                        json={'contentType': content_type},
-                        headers={'X-Private-Key': priv_key},
+                        f'{CL_API_ENDPOINT}/uploads/presign',
+                        json={'fileName': file_name, 'contentType': content_type},
                         timeout=10
                     )
 
                     if url_resp.status_code == 200:
                         url_data    = url_resp.json()
-                        upload_url  = url_data.get('uploadUrl') or url_data.get('data', {}).get('uploadUrl')
-                        image_s3url = url_data.get('imageUrl')  or url_data.get('data', {}).get('imageUrl')
+                        upload_url  = url_data.get('data', {}).get('uploadUrl')
+                        image_s3url = url_data.get('data', {}).get('publicUrl')
 
                         if upload_url:
                             # Upload directly to S3

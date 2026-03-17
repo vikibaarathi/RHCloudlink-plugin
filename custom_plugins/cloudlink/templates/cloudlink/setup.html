@@ -352,27 +352,32 @@
 
       <div class="cl-row">
         <div class="cl-field">
-          <label>Date</label>
+          <label>Start Date</label>
           <input type="date" id="eventdate" />
         </div>
         <div class="cl-field">
-          <label>City</label>
-          <input type="text" id="eventcity" placeholder="e.g. Kuala Lumpur" />
+          <label>End Date</label>
+          <input type="date" id="eventenddate" />
         </div>
       </div>
 
       <div class="cl-row">
         <div class="cl-field">
+          <label>City</label>
+          <input type="text" id="eventcity" placeholder="e.g. Kuala Lumpur" />
+        </div>
+        <div class="cl-field">
           <label>Country</label>
           <input type="text" id="eventcountry" placeholder="e.g. Malaysia" />
         </div>
-        <div class="cl-field">
-          <label>Event Visibility</label>
-          <select id="eventpublic">
-            <option value="private">🔒 Private — invite only</option>
-            <option value="public">🌐 Public — listed on CloudLink</option>
-          </select>
-        </div>
+      </div>
+
+      <div class="cl-field">
+        <label>Event Visibility</label>
+        <select id="eventpublic">
+          <option value="private">🔒 Private — invite only</option>
+          <option value="public">🌐 Public — listed on CloudLink</option>
+        </select>
       </div>
 
       <div class="cl-field">
@@ -386,13 +391,12 @@
       <h2>Event Image</h2>
       <div class="cl-img-options">
 
-        <!-- Option 1: RH Logo -->
+        <!-- Option 1: Default logo -->
         <div class="cl-img-option selected" id="opt-rh_logo" onclick="selectImageMode('rh_logo')">
           <input type="radio" name="image_mode" value="rh_logo" checked>
           <div class="cl-img-option-body">
-            <div class="cl-img-option-label">Use RotorHazard Logo</div>
-            <div class="cl-img-option-desc">Uses the RotorHazard logo as the event image.</div>
-            <img src="/static/image/RotorHazard Logo.svg" class="cl-rh-logo-preview" alt="RotorHazard Logo">
+            <div class="cl-img-option-label">Use Default CloudLink Logo</div>
+            <div class="cl-img-option-desc">Uses the default CloudLink placeholder image. You can update it later.</div>
           </div>
         </div>
 
@@ -403,8 +407,8 @@
             <div class="cl-img-option-label">Upload a File</div>
             <div class="cl-img-option-desc">Upload a poster or chapter logo from this timer machine.</div>
             <div class="cl-img-option-input" id="upload-input">
-              <input type="file" id="image_file" class="cl-file-input" accept="image/jpeg,image/png,image/webp,image/svg+xml" onclick="event.stopPropagation()">
-              <div class="cl-file-hint">JPEG, PNG, WebP or SVG · Max 5 MB</div>
+              <input type="file" id="image_file" class="cl-file-input" accept="image/jpeg,image/png,image/webp" onclick="event.stopPropagation()">
+              <div class="cl-file-hint">JPEG, PNG or WebP · Max 5 MB</div>
             </div>
           </div>
         </div>
@@ -533,9 +537,12 @@
     setLoading(true);
 
     var formData = new FormData();
+    var startDate = document.getElementById('eventdate').value;
+    var endDate   = document.getElementById('eventenddate').value || startDate;
     formData.append('eventname',    eventname);
     formData.append('emailid',      emailid);
-    formData.append('eventdate',    document.getElementById('eventdate').value);
+    formData.append('eventdate',    startDate);
+    formData.append('eventenddate', endDate);
     formData.append('eventcity',    document.getElementById('eventcity').value.trim());
     formData.append('eventcountry', document.getElementById('eventcountry').value.trim());
     formData.append('eventdesc',    document.getElementById('eventdesc').value.trim());
@@ -590,7 +597,8 @@
     document.getElementById('register-form-section').style.display = 'block';
     document.getElementById('eventname').value = '';
     document.getElementById('emailid').value = '';
-    document.getElementById('eventdate').value = '';
+    document.getElementById('eventdate').value = today;
+    document.getElementById('eventenddate').value = today;
     document.getElementById('eventcity').value = '';
     document.getElementById('eventcountry').value = '';
     document.getElementById('eventpublic').value = 'private';
@@ -606,9 +614,10 @@
     });
   }
 
-  // Init: set default date to today
+  // Init: set default dates to today
   var today = new Date().toISOString().split('T')[0];
   document.getElementById('eventdate').value = today;
+  document.getElementById('eventenddate').value = today;
 </script>
 
 </body>
