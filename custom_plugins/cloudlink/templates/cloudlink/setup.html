@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudLink — Event Setup</title>
+  <link rel="stylesheet" href="/static/rotorhazard.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/image/favicon-32x32.png">
+  <style>
+    body { padding: 0; margin: 0; }
+
+    /* Header */
+    .cl-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 2px solid var(--color-interface-border, #2a4a6b);
+      background: var(--color-panel-bg, #1a3550);
+    }
+    .cl-header h1 { font-size: 1.2rem; margin: 0; color: #fff; }
+    .cl-badge {
+      font-size: 0.6rem; background: #ee7a28; color: #fff;
+      border-radius: 4px; padding: 2px 6px; font-weight: 700;
+      text-transform: uppercase; margin-left: 8px; vertical-align: middle;
+    }
+    .cl-back { font-size: 0.85rem; color: #ee7a28; text-decoration: none; }
+    .cl-back:hover { text-decoration: underline; }
+
+    /* Layout */
+    .cl-container { max-width: 660px; margin: 28px auto; padding: 0 20px 60px; }
+
+    /* Card */
+    .cl-card {
+      background: var(--color-panel-bg, #1e3d5c);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 6px; padding: 22px; margin-bottom: 16px;
+    }
+    .cl-card-title {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #ee7a28; margin: 0 0 16px; font-weight: 700;
+    }
+
+    /* Fields */
+    .cl-field { margin-bottom: 14px; }
+    .cl-field label {
+      display: block; font-size: 0.75rem; color: var(--color-text-secondary, #9ab);
+      margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .cl-field input, .cl-field select, .cl-field textarea {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-input-bg, #132d45);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px; color: var(--color-text, #dde);
+      padding: 8px 11px; font-size: 0.9rem; font-family: inherit;
+      outline: none; transition: border-color 0.15s;
+    }
+    .cl-field input:focus, .cl-field textarea:focus, .cl-field select:focus { border-color: #ee7a28; }
+    .cl-field textarea { resize: vertical; min-height: 70px; }
+    .cl-field select { cursor: pointer; appearance: none; }
+    .cl-row { display: flex; gap: 14px; }
+    .cl-row .cl-field { flex: 1; }
+
+    /* Drop zone */
+    .cl-dropzone {
+      border: 2px dashed var(--color-interface-border, #2a4a6b);
+      border-radius: 6px; min-height: 100px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      position: relative; overflow: hidden;
+      background: var(--color-input-bg, #132d45);
+    }
+    .cl-dropzone:hover, .cl-dropzone.drag-over {
+      border-color: #ee7a28; background: rgba(238,122,40,0.05);
+    }
+    .cl-dropzone.has-image { cursor: default; border-style: solid; border-color: #ee7a28; }
+    .cl-dropzone-empty { text-align: center; padding: 20px; pointer-events: none; }
+    .cl-dropzone-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; opacity: 0.5; }
+    .cl-dropzone-text { font-size: 0.85rem; color: var(--color-text-secondary, #9ab); margin: 0; }
+    .cl-dropzone-link { color: #ee7a28; text-decoration: underline; }
+    .cl-dropzone-hint { font-size: 0.72rem; color: var(--color-text-secondary, #9ab); margin-top: 4px; }
+    .cl-dropzone-preview { width: 100%; height: 110px; position: relative; }
+    .cl-preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cl-preview-remove {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(200,60,60,0.85); color: #fff;
+      border: none; border-radius: 50%; width: 24px; height: 24px;
+      font-size: 0.8rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .cl-upload-error { font-size: 0.78rem; color: #f88; margin-top: 6px; display: none; }
+    .cl-upload-status { font-size: 0.78rem; color: var(--color-text-secondary, #9ab); margin-top: 6px; display: none; }
+
+    /* Buttons */
+    .cl-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 22px; border-radius: 4px; font-size: 0.9rem;
+      font-weight: 600; cursor: pointer; border: none;
+      font-family: inherit; letter-spacing: 0.02em; transition: opacity 0.15s;
+    }
+    .cl-btn-primary { background: #ee7a28; color: #fff; }
+    .cl-btn-primary:hover { opacity: 0.87; }
+    .cl-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cl-btn-secondary { background: transparent; color: #ee7a28; border: 1px solid #ee7a28; }
+    .cl-btn-secondary:hover { background: rgba(238,122,40,0.1); }
+    .cl-btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* Spinner */
+    .cl-spinner {
+      width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.65s linear infinite; display: none;
+    }
+    .submitting .cl-spinner { display: block; }
+    .submitting .cl-btn-label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Status */
+    .cl-status {
+      font-size: 0.82rem; padding: 9px 13px; border-radius: 4px;
+      margin-top: 12px; display: none;
+    }
+    .cl-status.error { background: rgba(200,60,60,0.15); border: 1px solid rgba(200,60,60,0.35); color: #f88; }
+    .cl-status.info  { background: rgba(238,122,40,0.1);  border: 1px solid rgba(238,122,40,0.3);  color: #ee7a28; }
+
+    /* Existing keys */
+    .cl-key-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .cl-key-box {
+      flex: 1; background: var(--color-input-bg, #132d45);
+      border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px; padding: 7px 11px;
+      font-family: monospace; font-size: 0.95rem; color: #ee7a28; letter-spacing: 0.05em;
+    }
+    .cl-copy-btn {
+      background: none; border: 1px solid var(--color-interface-border, #2a4a6b);
+      border-radius: 4px; color: var(--color-text-secondary, #9ab);
+      padding: 6px 10px; cursor: pointer; font-size: 0.72rem; white-space: nowrap;
+    }
+    .cl-copy-btn:hover { border-color: #ee7a28; color: #ee7a28; }
+
+    /* Success */
+    #success-section { display: none; }
+    .cl-success-icon { font-size: 2.2rem; text-align: center; margin-bottom: 10px; }
+    .cl-success-msg {
+      text-align: center; font-size: 0.88rem;
+      color: var(--color-text-secondary, #9ab); margin-bottom: 20px; line-height: 1.5;
+    }
+    .cl-success-msg strong { color: var(--color-text, #dde); }
+  </style>
+</head>
+<body>
+
+<div class="cl-header">
+  <h1>CloudLink <span class="cl-badge">Event Setup</span></h1>
+  <a class="cl-back" href="/format">← Back to Format</a>
+</div>
+
+<div class="cl-container">
+
+  <!-- ── Already registered ── -->
+  {% if eventid and eventkey %}
+  <div class="cl-card" id="existing-section">
+    <div class="cl-card-title">✅ Event Registered</div>
+    <div class="cl-field">
+      <label>Event ID</label>
+      <div class="cl-key-row">
+        <div class="cl-key-box">{{ eventid }}</div>
+        <button class="cl-copy-btn" onclick="copyText('{{ eventid }}', this)">Copy</button>
+      </div>
+    </div>
+    <div class="cl-field">
+      <label>Private Key</label>
+      <div class="cl-key-row">
+        <div class="cl-key-box">{{ eventkey }}</div>
+        <button class="cl-copy-btn" onclick="copyText('{{ eventkey }}', this)">Copy</button>
+      </div>
+    </div>
+    <div class="cl-btn-row" style="margin-top:18px;">
+      <a class="cl-btn cl-btn-primary" href="/format">Done — Back to Format</a>
+      <button class="cl-btn cl-btn-secondary" onclick="showForm()">Register a Different Event</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Registration form ── -->
+  <div id="form-section" {% if eventid and eventkey %}style="display:none"{% endif %}>
+
+    <!-- Event Details -->
+    <div class="cl-card">
+      <div class="cl-card-title">Event Details</div>
+
+      <div class="cl-field">
+        <label>Event Name *</label>
+        <input type="text" id="eventname" placeholder="e.g. UGKL FPV Round 3" maxlength="100">
+      </div>
+
+      <div class="cl-field">
+        <label>Race Director Email *</label>
+        <input type="text" id="emailid" placeholder="e.g. director@example.com" maxlength="254">
+      </div>
+
+      <div class="cl-row">
+        <div class="cl-field">
+          <label>Start Date</label>
+          <input type="date" id="eventdate">
+        </div>
+        <div class="cl-field">
+          <label>End Date</label>
+          <input type="date" id="eventenddate">
+        </div>
+      </div>
+
+      <div class="cl-row">
+        <div class="cl-field">
+          <label>City</label>
+          <input type="text" id="eventcity" placeholder="e.g. Kuala Lumpur" maxlength="100">
+        </div>
+        <div class="cl-field">
+          <label>Country</label>
+          <input type="text" id="eventcountry" placeholder="e.g. Malaysia" maxlength="100">
+        </div>
+      </div>
+
+      <div class="cl-field">
+        <label>Visibility</label>
+        <select id="eventpublic">
+          <option value="private">🔒 Private — not listed publicly</option>
+          <option value="public">🌐 Public — shown on CloudLink events page</option>
+        </select>
+      </div>
+
+      <div class="cl-field">
+        <label>Description</label>
+        <textarea id="eventdesc" placeholder="Brief description of the event..." maxlength="500"></textarea>
+      </div>
+    </div>
+
+    <!-- Event Logo -->
+    <div class="cl-card">
+      <div class="cl-card-title">Event Logo <span style="font-size:0.7rem;text-transform:none;color:var(--color-text-secondary,#9ab);letter-spacing:0;">(optional — JPEG, PNG or WebP, max 5MB)</span></div>
+
+      <div class="cl-dropzone" id="dropzone"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
+           onclick="onDropzoneClick()">
+
+        <div class="cl-dropzone-empty" id="dz-empty">
+          <span class="cl-dropzone-icon">🖼️</span>
+          <p class="cl-dropzone-text">Drag &amp; drop your logo here<br>
+            or <span class="cl-dropzone-link">click to browse</span></p>
+          <p class="cl-dropzone-hint">JPEG, PNG, WebP · max 5MB</p>
+        </div>
+
+        <div class="cl-dropzone-preview" id="dz-preview" style="display:none">
+          <img class="cl-preview-img" id="preview-img" src="" alt="Preview">
+          <button class="cl-preview-remove" onclick="event.stopPropagation(); clearImage()" title="Remove">✕</button>
+        </div>
+      </div>
+
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onFileSelected(event)">
+      <div class="cl-upload-error" id="upload-error"></div>
+      <div class="cl-upload-status" id="upload-status"></div>
+    </div>
+
+    <!-- Submit -->
+    <div class="cl-card">
+      <div class="cl-btn-row">
+        <button class="cl-btn cl-btn-primary" id="submit-btn" onclick="submitForm()">
+          <span class="cl-spinner"></span>
+          <span class="cl-btn-label">Register Event</span>
+        </button>
+        {% if eventid and eventkey %}
+        <button class="cl-btn cl-btn-secondary" onclick="cancelForm()">Cancel</button>
+        {% endif %}
+      </div>
+      <div class="cl-status" id="form-status"></div>
+    </div>
+
+  </div><!-- /form-section -->
+
+  <!-- ── Success ── -->
+  <div id="success-section">
+    <div class="cl-card">
+      <div class="cl-success-icon">🎉</div>
+      <div class="cl-success-msg">
+        Event registered!<br>
+        <strong>Keys saved to your timer automatically.</strong><br>
+        Head back to Format to start racing.
+      </div>
+      <div class="cl-field">
+        <label>Event ID</label>
+        <div class="cl-key-row">
+          <div class="cl-key-box" id="new-eventid">—</div>
+          <button class="cl-copy-btn" onclick="copyText(document.getElementById('new-eventid').textContent, this)">Copy</button>
+        </div>
+      </div>
+      <div class="cl-field">
+        <label>Private Key</label>
+        <div class="cl-key-row">
+          <div class="cl-key-box" id="new-eventkey">—</div>
+          <button class="cl-copy-btn" onclick="copyText(document.getElementById('new-eventkey').textContent, this)">Copy</button>
+        </div>
+      </div>
+      <div class="cl-btn-row" style="margin-top:18px;">
+        <a class="cl-btn cl-btn-primary" href="/format">Done — Back to Format</a>
+        <button class="cl-btn cl-btn-secondary" onclick="registerAnother()">Register Another</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /cl-container -->
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  var selectedFile = null;
+  var previewUrl   = null;
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('eventdate').value    = today;
+  document.getElementById('eventenddate').value = today;
+
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
+  function onDropzoneClick() {
+    if (!selectedFile) document.getElementById('file-input').click();
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.add('drag-over');
+  }
+  function onDragLeave() {
+    document.getElementById('dropzone').classList.remove('drag-over');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.remove('drag-over');
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }
+  function onFileSelected(e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) handleFile(file);
+  }
+
+  // ── File handling ──────────────────────────────────────────────────────────
+  function handleFile(file) {
+    hideUploadError();
+
+    var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) {
+      showUploadError('Only JPEG, PNG or WebP images are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showUploadError('Image must be under 5MB.');
+      return;
+    }
+
+    selectedFile = file;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(file);
+
+    document.getElementById('preview-img').src = previewUrl;
+    document.getElementById('dz-empty').style.display   = 'none';
+    document.getElementById('dz-preview').style.display = 'block';
+    document.getElementById('dropzone').classList.add('has-image');
+  }
+
+  function clearImage() {
+    selectedFile = null;
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    document.getElementById('file-input').value = '';
+    document.getElementById('preview-img').src = '';
+    document.getElementById('dz-empty').style.display   = 'block';
+    document.getElementById('dz-preview').style.display = 'none';
+    document.getElementById('dropzone').classList.remove('has-image');
+    hideUploadError();
+    hideUploadStatus();
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  function submitForm() {
+    var eventname = document.getElementById('eventname').value.trim();
+    var emailid   = document.getElementById('emailid').value.trim();
+
+    if (!eventname) { showStatus('Event name is required.', 'error'); return; }
+    if (!emailid)   { showStatus('Email address is required.', 'error'); return; }
+
+    hideStatus();
+    setLoading(true);
+
+    var fd = new FormData();
+    fd.append('eventname',    eventname);
+    fd.append('emailid',      emailid);
+    fd.append('eventdate',    document.getElementById('eventdate').value);
+    fd.append('eventenddate', document.getElementById('eventenddate').value || document.getElementById('eventdate').value);
+    fd.append('eventcity',    document.getElementById('eventcity').value.trim());
+    fd.append('eventcountry', document.getElementById('eventcountry').value.trim());
+    fd.append('eventdesc',    document.getElementById('eventdesc').value.trim());
+    fd.append('eventpublic',  document.getElementById('eventpublic').value);
+    fd.append('has_image',    selectedFile ? 'true' : 'false');
+
+    if (selectedFile) {
+      fd.append('image_file', selectedFile, selectedFile.name);
+      showStatus('Creating event...', 'info');
+    }
+
+    fetch('/cloudlink/register', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setLoading(false);
+        if (data.success) {
+          document.getElementById('new-eventid').textContent  = data.eventid;
+          document.getElementById('new-eventkey').textContent = data.privatekey;
+          document.getElementById('form-section').style.display    = 'none';
+          document.getElementById('success-section').style.display = 'block';
+          var ex = document.getElementById('existing-section');
+          if (ex) ex.style.display = 'none';
+        } else {
+          showStatus('Error: ' + (data.error || 'Registration failed'), 'error');
+        }
+      })
+      .catch(function() {
+        setLoading(false);
+        showStatus('Network error — check internet connection.', 'error');
+      });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function setLoading(loading) {
+    var btn = document.getElementById('submit-btn');
+    if (loading) { btn.classList.add('submitting'); btn.disabled = true; }
+    else         { btn.classList.remove('submitting'); btn.disabled = false; }
+  }
+  function showStatus(msg, type) {
+    var el = document.getElementById('form-status');
+    el.textContent = msg; el.className = 'cl-status ' + type; el.style.display = 'block';
+  }
+  function hideStatus() { document.getElementById('form-status').style.display = 'none'; }
+  function showUploadError(msg) {
+    var el = document.getElementById('upload-error');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideUploadError() { document.getElementById('upload-error').style.display = 'none'; }
+  function showUploadStatus(msg) {
+    var el = document.getElementById('upload-status');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideUploadStatus() { document.getElementById('upload-status').style.display = 'none'; }
+
+  function showForm() {
+    document.getElementById('existing-section').style.display = 'none';
+    document.getElementById('form-section').style.display     = 'block';
+  }
+  function cancelForm() {
+    document.getElementById('form-section').style.display     = 'none';
+    document.getElementById('existing-section').style.display = 'block';
+  }
+  function registerAnother() {
+    document.getElementById('success-section').style.display = 'none';
+    document.getElementById('form-section').style.display    = 'block';
+    document.getElementById('eventname').value    = '';
+    document.getElementById('emailid').value      = '';
+    document.getElementById('eventdate').value    = today;
+    document.getElementById('eventenddate').value = today;
+    document.getElementById('eventcity').value    = '';
+    document.getElementById('eventcountry').value = '';
+    document.getElementById('eventpublic').value  = 'private';
+    document.getElementById('eventdesc').value    = '';
+    clearImage();
+    hideStatus();
+  }
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>
