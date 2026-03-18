@@ -299,47 +299,56 @@
     <div id="form-section" {% if eventid and eventkey %}style="display:none"{% endif %}>
 
       <h5 class="mb-3">Event Details</h5>
-      <div class="mb-3">
-        <label class="form-label" for="eventname">Event Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="eventname" placeholder="e.g. UGKL FPV Round 3" maxlength="100">
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="emailid">Race Director Email <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="emailid" placeholder="e.g. director@example.com" maxlength="254">
-      </div>
-      <div class="row g-3 mb-3">
-        <div class="col-6">
-          <label class="form-label" for="eventdate">Start Date</label>
-          <input type="date" class="form-control" id="eventdate">
-        </div>
-        <div class="col-6">
-          <label class="form-label" for="eventenddate">End Date</label>
-          <input type="date" class="form-control" id="eventenddate">
-        </div>
-      </div>
-      <div class="row g-3 mb-3">
-        <div class="col-6">
-          <label class="form-label" for="eventcity">City</label>
-          <input type="text" class="form-control" id="eventcity" placeholder="e.g. Kuala Lumpur" maxlength="100">
-        </div>
-        <div class="col-6">
-          <label class="form-label" for="eventcountry">Country</label>
-          <input type="text" class="form-control" id="eventcountry" placeholder="e.g. Malaysia" maxlength="100">
-        </div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="eventpublic">Visibility</label>
-        <select class="form-select" id="eventpublic">
-          <option value="private">Private — not listed publicly</option>
-          <option value="public">Public — shown on Cloudlink events page</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="eventdesc">Description</label>
-        <textarea class="form-control" id="eventdesc" rows="3" placeholder="Brief description of the event..." maxlength="500"></textarea>
-      </div>
 
-      <h5 class="mb-2 mt-4">Event Logo <small class="text-muted fw-normal" style="font-size:0.75em;">optional — JPEG, PNG or WebP, max 5MB</small></h5>
+      <div class="row g-4">
+
+        <!-- ── Left column ── -->
+        <div class="col-12 col-md-6">
+          <div class="mb-3">
+            <label class="form-label" for="eventname">Event Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="eventname" placeholder="e.g. UGKL FPV Round 3" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="emailid">Race Director Email <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="emailid" placeholder="e.g. director@example.com" maxlength="254">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventdate">Start Date</label>
+            <input type="date" class="form-control" id="eventdate">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventenddate">End Date</label>
+            <input type="date" class="form-control" id="eventenddate">
+          </div>
+        </div>
+
+        <!-- ── Right column ── -->
+        <div class="col-12 col-md-6">
+          <div class="mb-3">
+            <label class="form-label" for="eventcity">City</label>
+            <input type="text" class="form-control" id="eventcity" placeholder="e.g. Kuala Lumpur" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventcountry">Country</label>
+            <input type="text" class="form-control" id="eventcountry" placeholder="e.g. Malaysia" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventpublic">Visibility</label>
+            <select class="form-select" id="eventpublic">
+              <option value="private">Private — not listed publicly</option>
+              <option value="public">Public — shown on Cloudlink events page</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventdesc">Description</label>
+            <textarea class="form-control" id="eventdesc" rows="3" placeholder="Brief description of the event..." maxlength="500"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+
+      <!-- ── Logo — full width ── -->
+      <h5 class="mb-2 mt-2">Event Logo <small class="text-muted fw-normal" style="font-size:0.75em;">optional — JPEG, PNG or WebP, max 5MB</small></h5>
       <div class="cl-dropzone mb-1" id="dropzone"
            ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
            onclick="onDropzoneClick()">
