@@ -12,8 +12,8 @@
 
     /* ── Navbar ── */
     .cl-navbar {
-      background: var(--color-interface-bg, #1a1a2e);
-      border-bottom: 2px solid hsl(var(--hue_1), var(--sat_1), var(--lum_1_high));
+      background: #ee7a28;
+      border-bottom: 2px solid #c45e10;
       padding: 0 1.25em;
       display: flex;
       align-items: center;
@@ -29,16 +29,22 @@
       gap: 0.5em;
       font-size: 1em;
       font-weight: 700;
-      color: var(--color-text, #dde);
+      color: #fff;
       text-decoration: none;
     }
     .cl-navbar-brand span.cl-brand-dim {
       font-weight: 400;
-      opacity: 0.55;
+      opacity: 0.75;
       font-size: 0.85em;
     }
     .cl-navbar-back {
       font-size: 0.85em;
+      color: #fff !important;
+      border-color: rgba(255,255,255,0.5) !important;
+    }
+    .cl-navbar-back:hover {
+      background: rgba(255,255,255,0.15) !important;
+      color: #fff !important;
     }
 
     .cl-page-wrap {
