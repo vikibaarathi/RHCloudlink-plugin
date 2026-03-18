@@ -3,25 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CloudLink — Event Setup</title>
+  <title>Cloudlink — Event Setup</title>
   <link rel="stylesheet" href="/static/rotorhazard.css">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/image/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/image/favicon-32x32.png">
   <style>
     /* Only additions — everything else inherits from rotorhazard.css */
 
+    /* ── Navbar ── */
+    .cl-navbar {
+      background: var(--color-interface-bg, #1a1a2e);
+      border-bottom: 2px solid hsl(var(--hue_1), var(--sat_1), var(--lum_1_high));
+      padding: 0 1.25em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 3em;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .cl-navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      font-size: 1em;
+      font-weight: 700;
+      color: var(--color-text, #dde);
+      text-decoration: none;
+    }
+    .cl-navbar-brand span.cl-brand-dim {
+      font-weight: 400;
+      opacity: 0.55;
+      font-size: 0.85em;
+    }
+    .cl-navbar-back {
+      font-size: 0.85em;
+    }
+
     .cl-page-wrap {
       max-width: 41em;
       margin: 0 auto;
-      padding: 1em 1em 4em;
+      padding: 1.5em 1em 4em;
     }
 
-    /* Back link row */
+    /* Back link row — keep for spacing below nav */
     .cl-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5em;
+      display: none; /* replaced by navbar */
     }
 
     /* Drop zone — only custom element */
@@ -118,6 +146,13 @@
   </style>
 </head>
 <body>
+
+<nav class="cl-navbar">
+  <a class="cl-navbar-brand" href="/cloudlink/setup">
+    RotorHazard Cloudlink <span class="cl-brand-dim">— Plugin</span>
+  </a>
+  <a href="/format" class="button-like cl-navbar-back">← Back to Format</a>
+</nav>
 
 <div class="cl-page-wrap">
 
