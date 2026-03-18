@@ -288,11 +288,76 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyText('{{ eventkey }}', this)">Copy</button>
         </div>
       </div>
-      <div class="d-flex gap-2 mt-3">
+      <div class="d-flex gap-2 mt-3 flex-wrap">
         <a href="/format" class="btn btn-sm" style="background:var(--cl-orange);color:#fff;">Done — Back to Format</a>
-        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showForm()">Register a Different Event</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showEditSection()">
+          <i class="bi bi-pencil-square"></i> Edit Event / Upload Image
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="showForm()">Register a Different Event</button>
       </div>
     </div>
+
+    <!-- ── Edit / Upload image section ── -->
+    <div id="edit-section" style="display:none">
+      <h5 class="mb-3">Edit Event</h5>
+
+      <!-- Disabled fields showing current event data -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Event Name</label>
+          <input type="text" class="form-control" id="edit-eventname" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Race Director Email</label>
+          <input type="text" class="form-control" id="edit-emailid" disabled>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" id="edit-eventdate" disabled>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">End Date</label>
+          <input type="date" class="form-control" id="edit-eventenddate" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">City / Country</label>
+          <input type="text" class="form-control" id="edit-location" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Visibility</label>
+          <input type="text" class="form-control" id="edit-eventpublic" disabled>
+        </div>
+      </div>
+
+      <div class="alert alert-info py-2 px-3 small mb-3">
+        <i class="bi bi-info-circle"></i> Fields are read-only. You can update the event logo below.
+      </div>
+
+      <!-- Logo upload — active -->
+      <h6 class="mb-2">Event Logo</h6>
+      <div class="cl-dropzone mb-1" id="ex-dropzone"
+           ondragover="onDragOver(event,'ex-dropzone')" ondragleave="onDragLeave('ex-dropzone')" ondrop="onExDrop(event)"
+           onclick="onExDropzoneClick()">
+        <div class="cl-dropzone-empty" id="ex-dz-empty">Drag &amp; drop image here, or click to browse</div>
+        <div class="cl-dropzone-preview" id="ex-dz-preview" style="display:none">
+          <img class="cl-preview-img" id="ex-preview-img" src="" alt="Preview">
+          <button type="button" class="cl-preview-remove" onclick="event.stopPropagation(); clearExImage()">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="ex-file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onExFileSelected(event)">
+      <div class="cl-upload-error" id="ex-upload-error"></div>
+
+      <div class="mt-3 d-flex gap-2 align-items-center">
+        <button type="button" class="btn btn-sm px-3" id="ex-upload-btn" onclick="uploadExistingLogo()"
+                style="background:var(--cl-orange);color:#fff;" disabled>
+          <span class="cl-spinner" id="ex-spinner"></span>
+          <span id="ex-upload-label">Save Logo</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideEditSection()">Cancel</button>
+      </div>
+      <div id="ex-upload-status" class="mt-2 small" style="display:none;"></div>
+    </div>
+
     {% endif %}
 
     <!-- Registration form -->
@@ -350,7 +415,7 @@
       <!-- ── Logo — full width ── -->
       <h5 class="mb-2 mt-2">Event Logo <small class="text-muted fw-normal" style="font-size:0.75em;">optional — JPEG, PNG or WebP, max 5MB</small></h5>
       <div class="cl-dropzone mb-1" id="dropzone"
-           ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)"
+           ondragover="onDragOver(event,'dropzone')" ondragleave="onDragLeave('dropzone')" ondrop="onDrop(event)"
            onclick="onDropzoneClick()">
         <div class="cl-dropzone-empty" id="dz-empty">
           Drag &amp; drop image here, or click to browse
@@ -456,13 +521,7 @@
   function onDropzoneClick() {
     if (!selectedFile) document.getElementById('file-input').click();
   }
-  function onDragOver(e) {
-    e.preventDefault();
-    document.getElementById('dropzone').classList.add('drag-over');
-  }
-  function onDragLeave() {
-    document.getElementById('dropzone').classList.remove('drag-over');
-  }
+  // onDragOver/onDragLeave are defined in the existing-logo section below (shared)
   function onDrop(e) {
     e.preventDefault();
     document.getElementById('dropzone').classList.remove('drag-over');
@@ -581,6 +640,161 @@
       btn.textContent = 'Copied!';
       setTimeout(function() { btn.textContent = orig; }, 1500);
     });
+  }
+
+  // ── Edit section show/hide + fetch event details ──────────────────────────
+  function showEditSection() {
+    document.getElementById('existing-section').style.display = 'none';
+    document.getElementById('edit-section').style.display     = 'block';
+
+    // Clear fields first
+    ['edit-eventname','edit-emailid','edit-eventdate','edit-eventenddate','edit-location','edit-eventpublic'].forEach(function(id) {
+      document.getElementById(id).value = 'Loading...';
+    });
+
+    var eventid = '{{ eventid }}';
+    fetch('/cloudlink/event-details?eventid=' + encodeURIComponent(eventid))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success && data.event) {
+          var e = data.event;
+          document.getElementById('edit-eventname').value    = e.eventname    || '—';
+          document.getElementById('edit-emailid').value      = e.emailid      || '—';
+          document.getElementById('edit-eventdate').value    = e.eventdate    || '';
+          document.getElementById('edit-eventenddate').value = e.eventenddate || '';
+          var loc = [e.eventcity, e.eventcountry].filter(Boolean).join(', ');
+          document.getElementById('edit-location').value     = loc || '—';
+          document.getElementById('edit-eventpublic').value  = e.eventpublic === 'public' ? 'Public' : 'Private';
+        } else {
+          // API couldn't fetch — clear with a note
+          ['edit-eventname','edit-emailid','edit-location','edit-eventpublic'].forEach(function(id) {
+            document.getElementById(id).value = 'Could not load';
+          });
+          document.getElementById('edit-eventdate').value    = '';
+          document.getElementById('edit-eventenddate').value = '';
+        }
+      })
+      .catch(function() {
+        ['edit-eventname','edit-emailid','edit-location','edit-eventpublic'].forEach(function(id) {
+          document.getElementById(id).value = 'Could not load';
+        });
+      });
+  }
+  function hideEditSection() {
+    document.getElementById('edit-section').style.display     = 'none';
+    document.getElementById('existing-section').style.display = 'block';
+    clearExImage();
+    document.getElementById('ex-upload-status').style.display = 'none';
+  }
+
+  // ── Existing event logo upload ─────────────────────────────────────────────
+  var exSelectedFile = null;
+  var exPreviewUrl   = null;
+
+  function onExDropzoneClick() {
+    if (!exSelectedFile) document.getElementById('ex-file-input').click();
+  }
+  function onDragOver(e, id) {
+    e.preventDefault();
+    document.getElementById(id).classList.add('drag-over');
+  }
+  function onDragLeave(id) {
+    document.getElementById(id).classList.remove('drag-over');
+  }
+  function onExDrop(e) {
+    e.preventDefault();
+    document.getElementById('ex-dropzone').classList.remove('drag-over');
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleExFile(file);
+  }
+  function onExFileSelected(e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) handleExFile(file);
+  }
+  function handleExFile(file) {
+    document.getElementById('ex-upload-error').style.display = 'none';
+    var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) {
+      document.getElementById('ex-upload-error').textContent = 'Only JPEG, PNG or WebP images are allowed.';
+      document.getElementById('ex-upload-error').style.display = 'block';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      document.getElementById('ex-upload-error').textContent = 'Image must be under 5MB.';
+      document.getElementById('ex-upload-error').style.display = 'block';
+      return;
+    }
+    exSelectedFile = file;
+    if (exPreviewUrl) URL.revokeObjectURL(exPreviewUrl);
+    exPreviewUrl = URL.createObjectURL(file);
+    document.getElementById('ex-preview-img').src = exPreviewUrl;
+    document.getElementById('ex-dz-empty').style.display   = 'none';
+    document.getElementById('ex-dz-preview').style.display = 'block';
+    document.getElementById('ex-dropzone').classList.add('has-image');
+    document.getElementById('ex-upload-btn').disabled = false;
+  }
+  function clearExImage() {
+    exSelectedFile = null;
+    if (exPreviewUrl) { URL.revokeObjectURL(exPreviewUrl); exPreviewUrl = null; }
+    document.getElementById('ex-file-input').value = '';
+    document.getElementById('ex-preview-img').src = '';
+    document.getElementById('ex-dz-empty').style.display   = 'block';
+    document.getElementById('ex-dz-preview').style.display = 'none';
+    document.getElementById('ex-dropzone').classList.remove('has-image');
+    document.getElementById('ex-upload-btn').disabled = true;
+    document.getElementById('ex-upload-error').style.display = 'none';
+    document.getElementById('ex-upload-status').style.display = 'none';
+  }
+  function setExLoading(on) {
+    var btn = document.getElementById('ex-upload-btn');
+    var lbl = document.getElementById('ex-upload-label');
+    var spin = document.getElementById('ex-spinner');
+    btn.disabled = on;
+    spin.style.display = on ? 'inline-block' : 'none';
+    lbl.textContent = on ? 'Uploading...' : 'Upload Logo';
+  }
+  function showExStatus(msg, isError) {
+    var el = document.getElementById('ex-upload-status');
+    el.textContent = msg;
+    el.style.color = isError ? '#dc3545' : '#198754';
+    el.style.display = 'block';
+  }
+
+  function uploadExistingLogo() {
+    if (!exSelectedFile) return;
+    var eventid  = '{{ eventid }}';
+    var eventkey = '{{ eventkey }}';
+    if (!eventid || !eventkey) { showExStatus('No event keys found.', true); return; }
+
+    setExLoading(true);
+    document.getElementById('ex-upload-status').style.display = 'none';
+
+    var fd = new FormData();
+    fd.append('image_file', exSelectedFile, exSelectedFile.name);
+    fd.append('eventid',    eventid);
+    fd.append('eventkey',   eventkey);
+
+    fetch('/cloudlink/upload-logo', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setExLoading(false);
+        if (data.success) {
+          hideEditSection();
+          // Show success banner on the existing section
+          var banner = document.createElement('div');
+          banner.className = 'alert alert-success py-2 px-3 small mt-3';
+          banner.innerHTML = '<i class="bi bi-check-circle"></i> Event logo updated successfully!';
+          var ex = document.getElementById('existing-section');
+          ex.appendChild(banner);
+          setTimeout(function() { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 4000);
+        } else {
+          showExStatus('Error: ' + (data.error || 'Upload failed'), true);
+        }
+      })
+      .catch(function() {
+        setExLoading(false);
+        showExStatus('Network error — check internet connection.', true);
+      });
   }
 </script>
 </body>

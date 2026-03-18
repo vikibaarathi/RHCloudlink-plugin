@@ -183,6 +183,119 @@ def create_registration_blueprint(rhapi):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ──────────────────────────────────────────────────────────────────────────
+    # GET /cloudlink/event-details — proxy to fetch event details from API
+    # ──────────────────────────────────────────────────────────────────────────
+    @bp.route('/event-details', methods=['GET'])
+    def event_details():
+        try:
+            event_id = request.args.get('eventid', '').strip()
+            if not event_id:
+                return jsonify({'success': False, 'error': 'eventid required'}), 400
+
+            resp = requests.get(
+                f'{CL_API_ENDPOINT}/event',
+                params={'eventid': event_id},
+                timeout=API_TIMEOUT_SHORT
+            )
+            if resp.status_code != 200:
+                return jsonify({'success': False, 'error': f'API error ({resp.status_code})'}), 502
+
+            data = resp.json()
+            logger.info(f'[CloudLink] event-details raw response type={type(data).__name__}: {str(data)[:200]}')
+
+            # API returns a list of items, or a string error message
+            event = None
+            if isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict) and item.get('sk', '').startswith('event'):
+                        event = item
+                        break
+                if not event and data:
+                    # fallback: take first dict item
+                    event = next((i for i in data if isinstance(i, dict)), None)
+
+            if not event:
+                return jsonify({'success': False, 'error': 'Event not found'}), 404
+
+            return jsonify({'success': True, 'event': event})
+
+        except Exception as e:
+            logger.error(f'[CloudLink] Event details error: {e}', exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # POST /cloudlink/upload-logo — upload/replace logo for an existing event
+    # ──────────────────────────────────────────────────────────────────────────
+    @bp.route('/upload-logo', methods=['POST'])
+    def upload_logo():
+        try:
+            event_id = (request.form.get('eventid',  '') or '').strip()
+            priv_key = (request.form.get('eventkey', '') or '').strip()
+            image_file = request.files.get('image_file')
+
+            if not event_id or not priv_key:
+                return jsonify({'success': False, 'error': 'Event ID and private key are required'}), 400
+            if not image_file or not image_file.filename:
+                return jsonify({'success': False, 'error': 'No image file provided'}), 400
+
+            content_type = image_file.content_type or 'image/jpeg'
+            if content_type not in ALLOWED_IMAGE_TYPES:
+                return jsonify({'success': False, 'error': 'Only JPEG, PNG or WebP images are allowed'}), 400
+
+            file_bytes = image_file.read()
+            if len(file_bytes) > 5 * 1024 * 1024:
+                return jsonify({'success': False, 'error': 'Image must be under 5MB'}), 400
+
+            file_name = image_file.filename or 'image.jpg'
+
+            # Step 1: Get presigned URL
+            presign_resp = requests.post(
+                f'{CL_API_ENDPOINT}/uploads/presign',
+                json={'fileName': file_name, 'contentType': content_type},
+                timeout=API_TIMEOUT_SHORT
+            )
+            if presign_resp.status_code != 200:
+                return jsonify({'success': False, 'error': f'Presign failed ({presign_resp.status_code})'}), 502
+
+            presign_data = presign_resp.json().get('data', {})
+            upload_url   = presign_data.get('uploadUrl')
+            public_url   = presign_data.get('publicUrl')
+
+            if not upload_url or not public_url:
+                return jsonify({'success': False, 'error': 'Invalid presign response'}), 502
+
+            # Step 2: PUT image to S3
+            s3_resp = requests.put(
+                upload_url,
+                data=file_bytes,
+                headers={'Content-Type': content_type},
+                timeout=API_TIMEOUT_S3
+            )
+            if s3_resp.status_code not in (200, 204):
+                return jsonify({'success': False, 'error': f'S3 upload failed ({s3_resp.status_code})'}), 502
+
+            # Step 3: PATCH event with new logo URL
+            patch_resp = requests.patch(
+                f'{CL_API_ENDPOINT}/event/{event_id}',
+                json={'eventlogourl': public_url},
+                headers={'X-Private-Key': priv_key},
+                timeout=API_TIMEOUT_SHORT
+            )
+            if patch_resp.status_code != 200:
+                return jsonify({'success': False, 'error': f'Event update failed ({patch_resp.status_code})'}), 502
+
+            logger.info(f'[CloudLink] Logo updated for event {event_id}: {public_url}')
+            return jsonify({'success': True, 'logourl': public_url})
+
+        except requests.exceptions.ConnectionError:
+            return jsonify({'success': False, 'error': 'Cannot reach CloudLink API — check internet connection'}), 503
+        except requests.exceptions.Timeout:
+            return jsonify({'success': False, 'error': 'CloudLink API timed out — please try again'}), 504
+        except Exception as e:
+            logger.error(f'[CloudLink] Upload logo error: {e}', exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ──────────────────────────────────────────────────────────────────────────
     # POST /cloudlink/clear — reset saved keys
     # ──────────────────────────────────────────────────────────────────────────
     @bp.route('/clear', methods=['POST'])
