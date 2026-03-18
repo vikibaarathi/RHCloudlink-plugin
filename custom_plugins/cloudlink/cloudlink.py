@@ -49,7 +49,10 @@ class CloudLink():
         ui = self._rhapi.ui
         ui.register_panel("cloud-link", "Cloudlink", "format")
         ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_new)
-        ui.register_quickbutton("cloud-link", "setup-button", "Setup / Register Event", self.open_setup)
+        ui.register_markdown("cloud-link", "cl-setup-link",
+            '<a href="/cloudlink/setup" class="button-like" style="display:inline-block;margin:4px 0;">'
+            '⚙ Setup / Register Event</a>'
+        )
 
         cl_enableplugin = UIField(name='cl-enable-plugin', label='Enable Cloud Link Plugin', field_type=UIFieldType.CHECKBOX, desc="Enable or disable this plugin.")
         cl_eventid  = UIField(name='cl-event-id',  label='Cloud Link Event ID',          field_type=UIFieldType.TEXT, desc="Event ID from rhcloudlink.com/register or the in-timer setup page.")
@@ -68,13 +71,6 @@ class CloudLink():
             self.logger.info("CloudLink: registration blueprint registered at /cloudlink/setup")
         except Exception as e:
             self.logger.error(f"CloudLink: failed to register blueprint: {e}")
-
-    def open_setup(self, args):
-        """Opens the in-timer registration UI in a new browser tab via JS redirect."""
-        self._rhapi.ui.message_notify(
-            'Opening CloudLink setup... <a href="/cloudlink/setup" target="_blank" '
-            'style="color:#ee7a28;font-weight:bold;">Click here if it did not open</a>'
-        )
 
     def resync_new(self, args):
      
