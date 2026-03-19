@@ -1,6 +1,8 @@
 import json
 import requests
 import logging
+import threading
+from datetime import datetime, timezone
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType, UIFieldSelectOption
 from .datamanager import ClDataManager
@@ -376,6 +378,123 @@ class CloudLink():
 
         else:
             self.logger.warning("No internet connection available")
+
+    # ── Live telemetry helpers ─────────────────────────────────────
+
+    def _post_async(self, endpoint, payload):
+        """Fire-and-forget POST in a background thread."""
+        def _do_post():
+            try:
+                requests.post(self.CL_API_ENDPOINT + endpoint, json=payload, timeout=5)
+            except Exception as e:
+                self.logger.warning("CloudLink live POST %s failed: %s", endpoint, e)
+        threading.Thread(target=_do_post, daemon=True).start()
+
+    def _live_guard(self):
+        """Return keys dict if live posting is allowed, else None."""
+        keys = self.getEventKeys()
+        if self.isEnabled() and keys["notempty"]:
+            return keys
+        return None
+
+    def _utcnow(self):
+        return datetime.now(timezone.utc).isoformat()
+
+    # ── Live race lifecycle ──────────────────────────────────────
+
+    def live_race_stage(self, args):
+        keys = self._live_guard()
+        if keys is None:
+            return
+        payload = {
+            "eventId": keys["eventid"],
+            "privateKey": keys["eventkey"],
+            "status": "armed",
+            "timestamp": self._utcnow()
+        }
+        self._post_async("/live/race", payload)
+        self.logger.info("Live telemetry: race armed")
+
+    def live_race_start(self, args):
+        keys = self._live_guard()
+        if keys is None:
+            return
+        payload = {
+            "eventId": keys["eventid"],
+            "privateKey": keys["eventkey"],
+            "status": "racing",
+            "timestamp": self._utcnow()
+        }
+        self._post_async("/live/race", payload)
+        self.logger.info("Live telemetry: race started")
+
+    def live_race_finish(self, args):
+        keys = self._live_guard()
+        if keys is None:
+            return
+        payload = {
+            "eventId": keys["eventid"],
+            "privateKey": keys["eventkey"],
+            "status": "finished",
+            "timestamp": self._utcnow()
+        }
+        self._post_async("/live/race", payload)
+        self.logger.info("Live telemetry: race finished")
+
+    # ── Live heat ────────────────────────────────────────────────
+
+    def live_heat_set(self, args):
+        keys = self._live_guard()
+        if keys is None:
+            return
+        db = self._rhapi.db
+        heat_id = args.get("heat_id")
+        if heat_id is None:
+            return
+        heat = db.heat_by_id(heat_id)
+        heat_name = heat.name if heat.name else "Heat " + str(heat_id)
+        slots = db.slots_by_heat(heat_id)
+        pilot_slots = []
+        for slot in slots:
+            if slot.node_index is not None and slot.pilot_id and slot.pilot_id != 0:
+                pilot = db.pilot_by_id(slot.pilot_id)
+                callsign = pilot.callsign if pilot else "-"
+                pilot_slots.append({
+                    "pilotId": slot.pilot_id,
+                    "callsign": callsign,
+                    "nodeIndex": slot.node_index
+                })
+        payload = {
+            "eventId": keys["eventid"],
+            "privateKey": keys["eventkey"],
+            "heatId": heat_id,
+            "heatName": heat_name,
+            "pilotSlots": pilot_slots,
+            "status": "set",
+            "timestamp": self._utcnow()
+        }
+        self._post_async("/live/heat", payload)
+        self.logger.info("Live telemetry: heat set — %s", heat_name)
+
+    # ── Live lap ─────────────────────────────────────────────────
+
+    def live_lap_recorded(self, args):
+        keys = self._live_guard()
+        if keys is None:
+            return
+        payload = {
+            "eventId": keys["eventid"],
+            "privateKey": keys["eventkey"],
+            "pilotId": args.get("pilot_id"),
+            "callsign": args.get("callsign", ""),
+            "nodeIndex": args.get("node_index"),
+            "lapNumber": args.get("lap_number"),
+            "lapTimeMs": args.get("lap_time"),
+            "lapTimeFormatted": args.get("lap_time_formatted", ""),
+            "isHoleshot": args.get("is_holeshot", False),
+            "timestamp": self._utcnow()
+        }
+        self._post_async("/live/lap", payload)
 
     def isConnected(self):
         try:
