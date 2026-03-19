@@ -13,3 +13,10 @@ def initialize(rhapi):
     rhapi.events.on(Evt.HEAT_DELETE, cloudlink.class_heat_delete)
     rhapi.events.on(Evt.CLASS_DELETE, cloudlink.class_heat_delete)
 
+    # Live telemetry hooks
+    rhapi.events.on(Evt.RACE_STAGE, cloudlink.live_race_stage)
+    rhapi.events.on(Evt.RACE_START, cloudlink.live_race_start)
+    rhapi.events.on(Evt.RACE_FINISH, cloudlink.live_race_finish)
+    rhapi.events.on(Evt.HEAT_SET, cloudlink.live_heat_set)
+    rhapi.events.on(Evt.LAP_RECORDED, cloudlink.live_lap_recorded)
+
