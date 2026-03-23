@@ -159,9 +159,9 @@ def create_registration_blueprint(rhapi):
                                 if patch_resp.status_code == 200:
                                     logger.info(f'[CloudLink] Image uploaded for {event_id}: {public_url}')
                                 else:
-                                    logger.warning(f'[CloudLink] PATCH failed ({patch_resp.status_code}) — event created, image not saved')
+                                    logger.warning(f'[CloudLink] Update failed ({patch_resp.status_code}) — event created, image not saved')
                             else:
-                                logger.warning(f'[CloudLink] S3 PUT failed ({s3_resp.status_code}) — event created, no image')
+                                logger.warning(f'[CloudLink] Cloud storage save failed ({s3_resp.status_code}) — event created, no image')
                         else:
                             logger.warning('[CloudLink] Missing uploadUrl/publicUrl in presign response')
                     else:
