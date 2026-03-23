@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloudlink — Event Setup</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/image/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/image/favicon-32x32.png">
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --cl-orange: #ee7a28;
+      --cl-orange-dark: #c45e10;
+      --cl-bg: #f8f9fa;
+      --cl-sidebar-width: 220px;
+    }
+
+    body {
+      background: var(--cl-bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* ── Top Navbar ── */
+    .cl-topnav {
+      background: var(--cl-orange);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1030;
+    }
+    .cl-topnav-brand {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+      text-decoration: none;
+      letter-spacing: 0.01em;
+    }
+    .cl-topnav-brand span {
+      font-weight: 400;
+      opacity: 0.75;
+      font-size: 0.85em;
+    }
+    .cl-topnav-back {
+      font-size: 0.82rem;
+      color: #fff;
+      text-decoration: none;
+      opacity: 0.85;
+      border: 1px solid rgba(255,255,255,0.45);
+      border-radius: 4px;
+      padding: 3px 10px;
+    }
+    .cl-topnav-back:hover { opacity: 1; color: #fff; background: rgba(255,255,255,0.15); }
+
+    /* Hamburger button (mobile only) */
+    .cl-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .cl-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #fff;
+      margin: 4px 0;
+      border-radius: 2px;
+    }
+
+    /* ── Sidebar ── */
+    .cl-sidebar {
+      position: fixed;
+      top: 52px;
+      left: 0;
+      bottom: 0;
+      width: var(--cl-sidebar-width);
+      background: #fff;
+      border-right: 1px solid #dee2e6;
+      overflow-y: auto;
+      z-index: 1020;
+      transition: transform 0.25s ease;
+    }
+    .cl-sidebar-nav {
+      list-style: none;
+      padding: 1rem 0;
+      margin: 0;
+    }
+    .cl-sidebar-nav li a {
+      display: flex;
+      align-items: center;
+      gap: 0.6em;
+      padding: 0.65rem 1.25rem;
+      color: #495057;
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .cl-sidebar-nav li a:hover {
+      background: #fff3ec;
+      color: var(--cl-orange);
+      border-left-color: var(--cl-orange);
+    }
+    .cl-sidebar-nav li a.active {
+      background: #fff3ec;
+      color: var(--cl-orange);
+      border-left-color: var(--cl-orange);
+      font-weight: 600;
+    }
+    .cl-sidebar-nav .cl-nav-icon { font-size: 1em; width: 1.2em; text-align: center; }
+    .cl-sidebar-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #adb5bd;
+      padding: 0.75rem 1.25rem 0.25rem;
+    }
+    .cl-sidebar-divider {
+      border-top: 1px solid #f0f0f0;
+      margin: 0.5rem 0;
+    }
+    .cl-nav-disabled {
+      opacity: 0.38;
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+
+    /* ── Main content ── */
+    .cl-main {
+      margin-left: var(--cl-sidebar-width);
+      margin-top: 52px;
+      padding: 1.75rem 2rem 4rem;
+      max-width: 720px;
+    }
+
+    /* ── Overlay for mobile sidebar ── */
+    .cl-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1015;
+    }
+    .cl-overlay.show { display: block; }
+
+    /* ── Dropzone ── */
+    .cl-dropzone {
+      border: 2px dashed #ced4da;
+      border-radius: 6px;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+      overflow: hidden;
+      background: #fdfdfd;
+    }
+    .cl-dropzone:hover, .cl-dropzone.drag-over {
+      border-color: var(--cl-orange);
+      background: #fff9f5;
+    }
+    .cl-dropzone.has-image { cursor: default; border-style: solid; border-color: var(--cl-orange); }
+    .cl-dropzone-empty {
+      text-align: center; padding: 16px;
+      pointer-events: none; font-style: italic;
+      opacity: 0.6; font-size: 0.85em;
+    }
+    .cl-dropzone-preview { width: 100%; height: 100px; position: relative; }
+    .cl-preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cl-preview-remove {
+      position: absolute; top: 4px; right: 4px;
+      background: rgba(180,40,40,0.85); color: #fff;
+      border: none; border-radius: 4px;
+      padding: 2px 8px; cursor: pointer; font-size: 0.8em;
+    }
+    .cl-upload-error { color: #dc3545; font-size: 0.82em; margin-top: 4px; display: none; }
+
+    /* ── Key box ── */
+    .cl-key-wrap { display: flex; gap: 0.5em; align-items: center; }
+    .cl-key-box {
+      flex: 1; border: 1px solid #ced4da; border-radius: 4px;
+      padding: 0.4rem 0.6rem; font-family: monospace; font-size: 0.95em;
+      background: #f8f9fa; word-break: break-all;
+    }
+
+    /* ── Spinner ── */
+    .cl-spinner {
+      display: none; width: 0.9em; height: 0.9em;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: cl-spin 0.65s linear infinite;
+      vertical-align: middle; margin-right: 0.3em;
+    }
+    .cl-loading .cl-spinner { display: inline-block; }
+    @keyframes cl-spin { to { transform: rotate(360deg); } }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 767px) {
+      .cl-hamburger { display: block; }
+      .cl-sidebar {
+        transform: translateX(-100%);
+      }
+      .cl-sidebar.open {
+        transform: translateX(0);
+      }
+      .cl-main {
+        margin-left: 0;
+        padding: 1.25rem 1rem 4rem;
+      }
+      .cl-topnav-back { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Top Navbar ── -->
+<nav class="cl-topnav">
+  <div class="d-flex align-items-center gap-3">
+    <button class="cl-hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="cl-topnav-brand" href="/cloudlink/setup">
+      RotorHazard Cloudlink <span>— Plugin</span>
+    </a>
+  </div>
+  <a href="/format" class="cl-topnav-back">← Back to Format</a>
+</nav>
+
+<!-- ── Sidebar overlay (mobile) ── -->
+<div class="cl-overlay" id="cl-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ── -->
+<aside class="cl-sidebar" id="cl-sidebar">
+  <ul class="cl-sidebar-nav">
+    <li class="cl-sidebar-label">Setup</li>
+    <li>
+      <a href="#" class="active" onclick="showTab('event-setup', this)">
+        <i class="bi bi-calendar-event cl-nav-icon"></i> Event Setup <sup style="font-size:0.6em;font-weight:700;color:var(--cl-orange);letter-spacing:0.05em;">NEW</sup>
+      </a>
+    </li>
+    <li>
+      <a href="#" class="cl-nav-disabled" onclick="return false;">
+        <i class="bi bi-diagram-3 cl-nav-icon"></i> Bracket Configuration
+      </a>
+    </li>
+    <li class="cl-sidebar-divider"></li>
+    <li class="cl-sidebar-label">Live</li>
+    <li>
+      <a href="#" class="cl-nav-disabled" onclick="return false;">
+        <i class="bi bi-broadcast cl-nav-icon"></i> Realtime Update
+      </a>
+    </li>
+  </ul>
+</aside>
+
+<!-- ── Main content ── -->
+<main class="cl-main">
+
+  <!-- ══ TAB: Event Setup ══ -->
+  <div id="tab-event-setup">
+
+    <!-- Already registered -->
+    {% if eventid and eventkey %}
+    <div id="existing-section">
+      <h5 class="mb-3">✅ Event Registered</h5>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Event ID</label>
+        <div class="cl-key-wrap">
+          <div class="cl-key-box">{{ eventid }}</div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyText('{{ eventid }}', this)">Copy</button>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Private Key</label>
+        <div class="cl-key-wrap">
+          <div class="cl-key-box">{{ eventkey }}</div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyText('{{ eventkey }}', this)">Copy</button>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <a href="/format" class="btn btn-sm" style="background:var(--cl-orange);color:#fff;">Done — Back to Format</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showEditSection()">
+          <i class="bi bi-pencil-square"></i> Edit Event / Upload Image
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="showForm()">Register a Different Event</button>
+      </div>
+    </div>
+
+    <!-- ── Edit / Upload image section ── -->
+    <div id="edit-section" style="display:none">
+      <h5 class="mb-3">Edit Event</h5>
+
+      <!-- Disabled fields showing current event data -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Event Name</label>
+          <input type="text" class="form-control" id="edit-eventname" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Race Director Email</label>
+          <input type="text" class="form-control" id="edit-emailid" disabled>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" id="edit-eventdate" disabled>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">End Date</label>
+          <input type="date" class="form-control" id="edit-eventenddate" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">City / Country</label>
+          <input type="text" class="form-control" id="edit-location" disabled>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Visibility</label>
+          <input type="text" class="form-control" id="edit-eventpublic" disabled>
+        </div>
+      </div>
+
+      <div class="alert alert-info py-2 px-3 small mb-3">
+        <i class="bi bi-info-circle"></i> Fields are read-only. You can update the event logo below.
+      </div>
+
+      <!-- Logo upload — active -->
+      <h6 class="mb-2">Event Logo</h6>
+      <div class="cl-dropzone mb-1" id="ex-dropzone"
+           ondragover="onDragOver(event,'ex-dropzone')" ondragleave="onDragLeave('ex-dropzone')" ondrop="onExDrop(event)"
+           onclick="onExDropzoneClick()">
+        <div class="cl-dropzone-empty" id="ex-dz-empty">Drag &amp; drop image here, or click to browse</div>
+        <div class="cl-dropzone-preview" id="ex-dz-preview" style="display:none">
+          <img class="cl-preview-img" id="ex-preview-img" src="" alt="Preview">
+          <button type="button" class="cl-preview-remove" onclick="event.stopPropagation(); clearExImage()">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="ex-file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onExFileSelected(event)">
+      <div class="cl-upload-error" id="ex-upload-error"></div>
+
+      <div class="mt-3 d-flex gap-2 align-items-center">
+        <button type="button" class="btn btn-sm px-3" id="ex-upload-btn" onclick="uploadExistingLogo()"
+                style="background:var(--cl-orange);color:#fff;" disabled>
+          <span class="cl-spinner" id="ex-spinner"></span>
+          <span id="ex-upload-label">Save Logo</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideEditSection()">Cancel</button>
+      </div>
+      <div id="ex-upload-status" class="mt-2 small" style="display:none;"></div>
+    </div>
+
+    {% endif %}
+
+    <!-- Registration form -->
+    <div id="form-section" {% if eventid and eventkey %}style="display:none"{% endif %}>
+
+      <h5 class="mb-3">Event Details</h5>
+
+      <div class="row g-4">
+
+        <!-- ── Left column ── -->
+        <div class="col-12 col-md-6">
+          <div class="mb-3">
+            <label class="form-label" for="eventname">Event Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="eventname" placeholder="e.g. City FPV Race Round 1" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="emailid">Race Director Email <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="emailid" placeholder="e.g. you@example.com" maxlength="254">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventdate">Start Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="eventdate" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventenddate">End Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="eventenddate" required>
+          </div>
+        </div>
+
+        <!-- ── Right column ── -->
+        <div class="col-12 col-md-6">
+          <div class="mb-3">
+            <label class="form-label" for="eventcity">City</label>
+            <input type="text" class="form-control" id="eventcity" placeholder="City" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventcountry">Country</label>
+            <input type="text" class="form-control" id="eventcountry" placeholder="Country" maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventpublic">Visibility</label>
+            <select class="form-select" id="eventpublic">
+              <option value="public">Public — shown on Cloudlink events page</option>
+              <option value="private">Private — not listed publicly</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="eventdesc">Description</label>
+            <textarea class="form-control" id="eventdesc" rows="3" placeholder="Brief description of the event..." maxlength="500"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+
+      <!-- ── Logo — full width ── -->
+      <h5 class="mb-2 mt-2">Event Logo <small class="text-muted fw-normal" style="font-size:0.75em;">optional — JPEG, PNG or WebP, max 5MB</small></h5>
+      <div class="cl-dropzone mb-1" id="dropzone"
+           ondragover="onDragOver(event,'dropzone')" ondragleave="onDragLeave('dropzone')" ondrop="onDrop(event)"
+           onclick="onDropzoneClick()">
+        <div class="cl-dropzone-empty" id="dz-empty">
+          Drag &amp; drop image here, or click to browse
+        </div>
+        <div class="cl-dropzone-preview" id="dz-preview" style="display:none">
+          <img class="cl-preview-img" id="preview-img" src="" alt="Preview">
+          <button type="button" class="cl-preview-remove" onclick="event.stopPropagation(); clearImage()">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onFileSelected(event)">
+      <div class="cl-upload-error" id="upload-error"></div>
+
+      <div class="mt-4">
+        <button type="button" class="btn px-4" id="submit-btn" onclick="submitForm()"
+                style="background:var(--cl-orange);color:#fff;">
+          <span class="cl-spinner"></span>
+          <span id="submit-label">Register Event</span>
+        </button>
+        {% if eventid and eventkey %}
+        <button type="button" class="btn btn-outline-secondary ms-2" onclick="cancelForm()">Cancel</button>
+        {% endif %}
+        <div id="form-status" class="mt-2 text-danger small" style="display:none;"></div>
+      </div>
+
+    </div><!-- /form-section -->
+
+    <!-- Success -->
+    <div id="success-section" style="display:none">
+      <div style="font-size:2em;text-align:center;padding:0.5em 0;">🎉</div>
+      <h5 class="text-center mb-1">Event Registered!</h5>
+      <p class="text-center text-muted small mb-4">Keys saved to your timer. Head back to Format to start racing.</p>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Event ID</label>
+        <div class="cl-key-wrap">
+          <div class="cl-key-box" id="new-eventid">—</div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyText(document.getElementById('new-eventid').textContent, this)">Copy</button>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Private Key</label>
+        <div class="cl-key-wrap">
+          <div class="cl-key-box" id="new-eventkey">—</div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyText(document.getElementById('new-eventkey').textContent, this)">Copy</button>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <a href="/format" class="btn btn-sm" style="background:var(--cl-orange);color:#fff;">Done — Back to Format</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="registerAnother()">Register Another</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-event-setup -->
+
+  <!-- ══ TAB: Bracket Configuration ══ -->
+  <div id="tab-bracket-config" style="display:none">
+    <h5 class="mb-2">Bracket Configuration</h5>
+    <p class="text-muted">Bracket configuration settings will appear here.</p>
+  </div>
+
+  <!-- ══ TAB: Realtime Update ══ -->
+  <div id="tab-realtime" style="display:none">
+    <h5 class="mb-2">Realtime Update</h5>
+    <p class="text-muted">Realtime sync status and controls will appear here.</p>
+  </div>
+
+</main>
+
+<script>
+  var selectedFile = null;
+  var previewUrl   = null;
+  var today        = new Date().toISOString().split('T')[0];
+  document.getElementById('eventdate').value    = today;
+  document.getElementById('eventenddate').value = today;
+
+  // ── Sidebar toggle (mobile) ────────────────────────────────────────────────
+  function toggleSidebar() {
+    document.getElementById('cl-sidebar').classList.toggle('open');
+    document.getElementById('cl-overlay').classList.toggle('show');
+  }
+  function closeSidebar() {
+    document.getElementById('cl-sidebar').classList.remove('open');
+    document.getElementById('cl-overlay').classList.remove('show');
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  function showTab(tabId, linkEl) {
+    // hide all tabs
+    ['event-setup', 'bracket-config', 'realtime'].forEach(function(t) {
+      document.getElementById('tab-' + t).style.display = 'none';
+    });
+    // show selected
+    document.getElementById('tab-' + tabId).style.display = 'block';
+    // update active link
+    document.querySelectorAll('.cl-sidebar-nav a').forEach(function(a) {
+      a.classList.remove('active');
+    });
+    if (linkEl) linkEl.classList.add('active');
+    // close sidebar on mobile after selection
+    closeSidebar();
+  }
+
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
+  function onDropzoneClick() {
+    if (!selectedFile) document.getElementById('file-input').click();
+  }
+  // onDragOver/onDragLeave are defined in the existing-logo section below (shared)
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.remove('drag-over');
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }
+  function onFileSelected(e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) handleFile(file);
+  }
+  function handleFile(file) {
+    hideUploadError();
+    var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) { showUploadError('Only JPEG, PNG or WebP images are allowed.'); return; }
+    if (file.size > 5 * 1024 * 1024) { showUploadError('Image must be under 5MB.'); return; }
+    selectedFile = file;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(file);
+    document.getElementById('preview-img').src = previewUrl;
+    document.getElementById('dz-empty').style.display   = 'none';
+    document.getElementById('dz-preview').style.display = 'block';
+    document.getElementById('dropzone').classList.add('has-image');
+  }
+  function clearImage() {
+    selectedFile = null;
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    document.getElementById('file-input').value = '';
+    document.getElementById('preview-img').src = '';
+    document.getElementById('dz-empty').style.display   = 'block';
+    document.getElementById('dz-preview').style.display = 'none';
+    document.getElementById('dropzone').classList.remove('has-image');
+    hideUploadError();
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  function submitForm() {
+    var eventname  = document.getElementById('eventname').value.trim();
+    var emailid    = document.getElementById('emailid').value.trim();
+    var startDate  = document.getElementById('eventdate').value;
+    var endDate    = document.getElementById('eventenddate').value;
+    if (!eventname)  { showStatus('Event name is required.'); return; }
+    if (!emailid)    { showStatus('Email address is required.'); return; }
+    if (!startDate)  { showStatus('Start date is required.'); return; }
+    if (!endDate)    { showStatus('End date is required.'); return; }
+    hideStatus();
+    setLoading(true);
+    endDate = endDate || startDate;
+    var fd = new FormData();
+    fd.append('eventname',    eventname);
+    fd.append('emailid',      emailid);
+    fd.append('eventdate',    startDate);
+    fd.append('eventenddate', endDate);
+    fd.append('eventcity',    document.getElementById('eventcity').value.trim());
+    fd.append('eventcountry', document.getElementById('eventcountry').value.trim());
+    fd.append('eventdesc',    document.getElementById('eventdesc').value.trim());
+    fd.append('eventpublic',  document.getElementById('eventpublic').value);
+    fd.append('has_image',    selectedFile ? 'true' : 'false');
+    if (selectedFile) fd.append('image_file', selectedFile, selectedFile.name);
+    fetch('/cloudlink/register', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setLoading(false);
+        if (data.success) {
+          document.getElementById('new-eventid').textContent  = data.eventid;
+          document.getElementById('new-eventkey').textContent = data.privatekey;
+          document.getElementById('form-section').style.display    = 'none';
+          document.getElementById('success-section').style.display = 'block';
+          var ex = document.getElementById('existing-section');
+          if (ex) ex.style.display = 'none';
+        } else {
+          showStatus('Error: ' + (data.error || 'Registration failed'));
+        }
+      })
+      .catch(function() { setLoading(false); showStatus('Network error — check internet connection.'); });
+  }
+  function setLoading(on) {
+    var btn = document.getElementById('submit-btn');
+    var lbl = document.getElementById('submit-label');
+    btn.disabled = on;
+    if (on) { btn.classList.add('cl-loading'); lbl.textContent = 'Registering...'; }
+    else    { btn.classList.remove('cl-loading'); lbl.textContent = 'Register Event'; }
+  }
+  function showStatus(msg) {
+    var el = document.getElementById('form-status');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideStatus() { document.getElementById('form-status').style.display = 'none'; }
+  function showUploadError(msg) {
+    var el = document.getElementById('upload-error');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideUploadError() { document.getElementById('upload-error').style.display = 'none'; }
+  function showForm() {
+    document.getElementById('existing-section').style.display = 'none';
+    document.getElementById('form-section').style.display     = 'block';
+  }
+  function cancelForm() {
+    document.getElementById('form-section').style.display     = 'none';
+    document.getElementById('existing-section').style.display = 'block';
+  }
+  function registerAnother() {
+    document.getElementById('success-section').style.display = 'none';
+    document.getElementById('form-section').style.display    = 'block';
+    ['eventname','emailid','eventcity','eventcountry','eventdesc'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('eventdate').value    = today;
+    document.getElementById('eventenddate').value = today;
+    document.getElementById('eventpublic').value  = 'private';
+    clearImage();
+    hideStatus();
+  }
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    });
+  }
+
+  // ── Edit section show/hide + fetch event details ──────────────────────────
+  function showEditSection() {
+    document.getElementById('existing-section').style.display = 'none';
+    document.getElementById('edit-section').style.display     = 'block';
+
+    // Clear fields first
+    ['edit-eventname','edit-emailid','edit-eventdate','edit-eventenddate','edit-location','edit-eventpublic'].forEach(function(id) {
+      document.getElementById(id).value = 'Loading...';
+    });
+
+    var eventid = '{{ eventid }}';
+    fetch('/cloudlink/event-details?eventid=' + encodeURIComponent(eventid))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success && data.event) {
+          var e = data.event;
+          document.getElementById('edit-eventname').value    = e.eventname    || '—';
+          document.getElementById('edit-emailid').value      = e.emailid      || '—';
+          document.getElementById('edit-eventdate').value    = e.eventdate    || '';
+          document.getElementById('edit-eventenddate').value = e.eventenddate || '';
+          var loc = [e.eventcity, e.eventcountry].filter(Boolean).join(', ');
+          document.getElementById('edit-location').value     = loc || '—';
+          document.getElementById('edit-eventpublic').value  = e.eventpublic === 'public' ? 'Public' : 'Private';
+        } else {
+          // API couldn't fetch — clear with a note
+          ['edit-eventname','edit-emailid','edit-location','edit-eventpublic'].forEach(function(id) {
+            document.getElementById(id).value = 'Could not load';
+          });
+          document.getElementById('edit-eventdate').value    = '';
+          document.getElementById('edit-eventenddate').value = '';
+        }
+      })
+      .catch(function() {
+        ['edit-eventname','edit-emailid','edit-location','edit-eventpublic'].forEach(function(id) {
+          document.getElementById(id).value = 'Could not load';
+        });
+      });
+  }
+  function hideEditSection() {
+    document.getElementById('edit-section').style.display     = 'none';
+    document.getElementById('existing-section').style.display = 'block';
+    clearExImage();
+    document.getElementById('ex-upload-status').style.display = 'none';
+  }
+
+  // ── Existing event logo upload ─────────────────────────────────────────────
+  var exSelectedFile = null;
+  var exPreviewUrl   = null;
+
+  function onExDropzoneClick() {
+    if (!exSelectedFile) document.getElementById('ex-file-input').click();
+  }
+  function onDragOver(e, id) {
+    e.preventDefault();
+    document.getElementById(id).classList.add('drag-over');
+  }
+  function onDragLeave(id) {
+    document.getElementById(id).classList.remove('drag-over');
+  }
+  function onExDrop(e) {
+    e.preventDefault();
+    document.getElementById('ex-dropzone').classList.remove('drag-over');
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleExFile(file);
+  }
+  function onExFileSelected(e) {
+    var file = e.target.files && e.target.files[0];
+    if (file) handleExFile(file);
+  }
+  function handleExFile(file) {
+    document.getElementById('ex-upload-error').style.display = 'none';
+    var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) {
+      document.getElementById('ex-upload-error').textContent = 'Only JPEG, PNG or WebP images are allowed.';
+      document.getElementById('ex-upload-error').style.display = 'block';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      document.getElementById('ex-upload-error').textContent = 'Image must be under 5MB.';
+      document.getElementById('ex-upload-error').style.display = 'block';
+      return;
+    }
+    exSelectedFile = file;
+    if (exPreviewUrl) URL.revokeObjectURL(exPreviewUrl);
+    exPreviewUrl = URL.createObjectURL(file);
+    document.getElementById('ex-preview-img').src = exPreviewUrl;
+    document.getElementById('ex-dz-empty').style.display   = 'none';
+    document.getElementById('ex-dz-preview').style.display = 'block';
+    document.getElementById('ex-dropzone').classList.add('has-image');
+    document.getElementById('ex-upload-btn').disabled = false;
+  }
+  function clearExImage() {
+    exSelectedFile = null;
+    if (exPreviewUrl) { URL.revokeObjectURL(exPreviewUrl); exPreviewUrl = null; }
+    document.getElementById('ex-file-input').value = '';
+    document.getElementById('ex-preview-img').src = '';
+    document.getElementById('ex-dz-empty').style.display   = 'block';
+    document.getElementById('ex-dz-preview').style.display = 'none';
+    document.getElementById('ex-dropzone').classList.remove('has-image');
+    document.getElementById('ex-upload-btn').disabled = true;
+    document.getElementById('ex-upload-error').style.display = 'none';
+    document.getElementById('ex-upload-status').style.display = 'none';
+  }
+  function setExLoading(on) {
+    var btn = document.getElementById('ex-upload-btn');
+    var lbl = document.getElementById('ex-upload-label');
+    var spin = document.getElementById('ex-spinner');
+    btn.disabled = on;
+    spin.style.display = on ? 'inline-block' : 'none';
+    lbl.textContent = on ? 'Uploading...' : 'Upload Logo';
+  }
+  function showExStatus(msg, isError) {
+    var el = document.getElementById('ex-upload-status');
+    el.textContent = msg;
+    el.style.color = isError ? '#dc3545' : '#198754';
+    el.style.display = 'block';
+  }
+
+  function uploadExistingLogo() {
+    if (!exSelectedFile) return;
+    var eventid  = '{{ eventid }}';
+    var eventkey = '{{ eventkey }}';
+    if (!eventid || !eventkey) { showExStatus('No event keys found.', true); return; }
+
+    setExLoading(true);
+    document.getElementById('ex-upload-status').style.display = 'none';
+
+    var fd = new FormData();
+    fd.append('image_file', exSelectedFile, exSelectedFile.name);
+    fd.append('eventid',    eventid);
+    fd.append('eventkey',   eventkey);
+
+    fetch('/cloudlink/upload-logo', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setExLoading(false);
+        if (data.success) {
+          hideEditSection();
+          // Show success banner on the existing section
+          var banner = document.createElement('div');
+          banner.className = 'alert alert-success py-2 px-3 small mt-3';
+          banner.innerHTML = '<i class="bi bi-check-circle"></i> Event logo updated successfully!';
+          var ex = document.getElementById('existing-section');
+          ex.appendChild(banner);
+          setTimeout(function() { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 4000);
+        } else {
+          showExStatus('Error: ' + (data.error || 'Upload failed'), true);
+        }
+      })
+      .catch(function() {
+        setExLoading(false);
+        showExStatus('Network error — check internet connection.', true);
+      });
+  }
+</script>
+</body>
+</html>

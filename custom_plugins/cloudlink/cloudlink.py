@@ -2,7 +2,7 @@ import json
 import requests
 import logging
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from RHUI import UIField, UIFieldType
+from RHUI import UIField, UIFieldType, UIFieldSelectOption
 from .datamanager import ClDataManager
 try:
     from .config import CL_API_ENDPOINT as _CONFIGURED_ENDPOINT
@@ -10,7 +10,7 @@ except ImportError:
     _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
 
 class CloudLink():
-    CL_VERSION = "1.2.1"
+    CL_VERSION = "1.5.0"
     CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
@@ -45,19 +45,32 @@ class CloudLink():
         
         self.init_ui(args)
         
-    def init_ui(self,args):
+    def init_ui(self, args):
         ui = self._rhapi.ui
         ui.register_panel("cloud-link", "Cloudlink", "format")
         ui.register_quickbutton("cloud-link", "send-all-button", "Resync", self.resync_new)
+        ui.register_markdown("cloud-link", "cl-setup-link",
+            '<a href="/cloudlink/setup" class="button-like" style="display:inline-block;margin:4px 0;">'
+            '⚙ Setup / Register Event</a>'
+        )
 
-        cl_enableplugin = UIField(name = 'cl-enable-plugin', label = 'Enable Cloud Link Plugin', field_type = UIFieldType.CHECKBOX, desc = "Enable or disable this plugin. Unchecking this box will stop all communication with the Cloudlink server.")
-        cl_eventid = UIField(name = 'cl-event-id', label = 'Cloud Link Event ID', field_type = UIFieldType.TEXT, desc = "Event must be registered at rhcloudlink.com")
-        cl_eventkey = UIField(name = 'cl-event-key', label = 'Cloud Link Event Private Key', field_type = UIFieldType.TEXT, desc = "Authentication key provided by Cloudlink during event registration.")
+        cl_enableplugin = UIField(name='cl-enable-plugin', label='Enable Cloud Link Plugin', field_type=UIFieldType.CHECKBOX, desc="Enable or disable this plugin.")
+        cl_eventid  = UIField(name='cl-event-id',  label='Cloud Link Event ID',          field_type=UIFieldType.TEXT, desc="Event ID from rhcloudlink.com/register or the in-timer setup page.")
+        cl_eventkey = UIField(name='cl-event-key', label='Cloud Link Event Private Key', field_type=UIFieldType.TEXT, desc="Private key provided after registration. Keep this safe.")
 
         fields = self._rhapi.fields
         fields.register_option(cl_enableplugin, "cloud-link")
-        fields.register_option(cl_eventid, "cloud-link")
-        fields.register_option(cl_eventkey, "cloud-link")
+        fields.register_option(cl_eventid,      "cloud-link")
+        fields.register_option(cl_eventkey,     "cloud-link")
+
+        # Register the Flask blueprint for the in-timer registration UI
+        try:
+            from .registration_blueprint import create_registration_blueprint
+            bp = create_registration_blueprint(self._rhapi)
+            self._rhapi.ui.blueprint_add(bp)
+            self.logger.info("CloudLink: registration blueprint registered at /cloudlink/setup")
+        except Exception as e:
+            self.logger.error(f"CloudLink: failed to register blueprint: {e}")
 
     def resync_new(self, args):
      
