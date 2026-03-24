@@ -1,50 +1,57 @@
-import json
-import requests
 import logging
-from sqlalchemy.ext.declarative import DeclarativeMeta
 from RHUI import UIField, UIFieldType, UIFieldSelectOption
 from .datamanager import ClDataManager
-try:
-    from .config import CL_API_ENDPOINT as _CONFIGURED_ENDPOINT
-except ImportError:
-    _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
+from .constants import CL_VERSION, OPT_ENABLED, OPT_EVENT_ID, OPT_EVENT_KEY
+from .payloads import (
+    build_class_payload, build_heat_slots_payload, build_delete_payload,
+    build_laps_payload, build_result_entry, build_results_payload,
+    build_resync_payload, format_heat_name,
+)
+
 
 class CloudLink():
-    CL_VERSION = "1.5.0"
-    CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
-    def __init__(self,rhapi):
+    def __init__(self, rhapi, api_client=None):
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
-        self.cldatamanger = ClDataManager(self._rhapi)
-        
-    def init_plugin(self,args):
+        self._api_client = api_client
+        self.cldatamanager = ClDataManager(self._rhapi)
 
+    # ── Guard ────────────────────────────────────────────────────────────────
+
+    def _ready(self):
+        """Return event keys if plugin is enabled and keys are set, else None."""
+        keys = self.getEventKeys()
+        if not self.isEnabled() or not keys["notempty"]:
+            return None
+        return keys
+
+    # ── Plugin lifecycle ─────────────────────────────────────────────────────
+
+    def init_plugin(self, args):
         isEnabled = self.isEnabled()
-        isConnected = self.isConnected()
         notEmptyKeys = self.getEventKeys()["notempty"]
 
         if isEnabled is False:
             self.logger.warning("Cloudlink is disabled. Please enable at Format page")
         elif notEmptyKeys is False:
             self.logger.warning("Cloudlink event keys are missing. Please register at https://rhcloudlink.com/register")
-        elif isConnected is False:
-            self.logger.warning("Cloudlink cannot connect to internet. Check connection and try again.")
         else:
-            x = requests.get(self.CL_API_ENDPOINT+'/healthcheck')
-            respond = x.json()
-            if self.CL_VERSION != respond["version"]:
-                if respond["softupgrade"] == True:
-                    self.logger.warning("New version of Cloud Link is available. Please consider upgrading.")
+            respond = self._api_client.healthcheck()
+            if respond is None:
+                self.logger.warning("Cloudlink cannot connect to internet. Check connection and try again.")
+            else:
+                if CL_VERSION != respond["version"]:
+                    if respond["softupgrade"] == True:
+                        self.logger.warning("New version of Cloud Link is available. Please consider upgrading.")
+                    if respond["forceupgrade"] == True:
+                        self.logger.warning("Cloudlink plugin needs to be updated.")
+                        self.CL_FORCEUPDATE = True
+                self.logger.info("Cloudlink is ready")
 
-                if respond["forceupgrade"] == True:
-                    self.logger.warning("Cloudlink plugin needs to bee updated. ")
-                    self.CL_FORCEUPDATE = True
-            self.logger.info("Cloudlink is ready")
-        
         self.init_ui(args)
-        
+
     def init_ui(self, args):
         ui = self._rhapi.ui
         ui.register_panel("cloud-link", "Cloudlink", "format")
@@ -66,131 +73,177 @@ class CloudLink():
         # Register the Flask blueprint for the in-timer registration UI
         try:
             from .registration_blueprint import create_registration_blueprint
-            bp = create_registration_blueprint(self._rhapi)
+            bp = create_registration_blueprint(self._rhapi, self._api_client)
             self._rhapi.ui.blueprint_add(bp)
             self.logger.info("CloudLink: registration blueprint registered at /cloudlink/setup")
         except Exception as e:
             self.logger.error(f"CloudLink: failed to register blueprint: {e}")
 
+    # ── Event handlers ───────────────────────────────────────────────────────
+
     def resync_new(self, args):
-     
-        keys = self.getEventKeys()
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            data = self.cldatamanger.get_everything()
-            ui = self._rhapi.ui
-            ui.message_notify("Initializing resyncronization protocol...")
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "data": data         
-            }
-
-            x = requests.post(self.CL_API_ENDPOINT+"/resync", json = payload)
+        keys = self._ready()
+        if not keys:
+            return
+        data = self.cldatamanager.get_everything()
+        ui = self._rhapi.ui
+        ui.message_notify("Initializing resyncronization protocol...")
+        payload = build_resync_payload(keys, data)
+        if self._api_client.post_resync(payload):
             ui.message_notify("Records sent to cloud for processing. Check cloudlink for status")
-
-    def class_listener(self,args):
-        
-        keys = self.getEventKeys()
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            
-            eventname = args["_eventName"]
-            if eventname == "classAdd":
-                classid = args["class_id"]
-                classname = "Class " + str(classid)
-                brackettype = "none"
-                round_type = 0
-
-            elif eventname == "classAlter":
-                classid = args["class_id"]
-                raceclass = self._rhapi.db.raceclass_by_id(classid)
-                classname = raceclass.name
-                brackettype = "check"
-                round_type = 0
-                if hasattr(raceclass, "round_type"):
-                    round_type = raceclass.round_type
-                
-            elif eventname == "heatGenerate":
-                classid = args["output_class_id"]
-                raceclass = self._rhapi.db.raceclass_by_id(classid)
-                if raceclass.name == "":
-                    classname = "Class " + str(classid)
-                else:
-                    classname = raceclass.name
-                brackettype = self.get_brackettype(args)
-                round_type = 0
-                if hasattr(raceclass, "round_type"):
-                    round_type = raceclass.round_type
-
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "classid": classid,
-                "classname": classname,
-                "brackettype": brackettype,
-                "round_type": round_type         
-            }
-            x = requests.post(self.CL_API_ENDPOINT+"/class", json = payload)
         else:
-            self.logger.warning("Cloud-Link Disabled")
+            ui.message_notify("Failed to reach CloudLink API. Check connection and try again.")
 
-    def heat_generate(self,args):
+    def class_listener(self, args):
+        keys = self._ready()
+        if not keys:
+            self.logger.warning("Cloud-Link Disabled")
+            return
+
         eventname = args["_eventName"]
+        if eventname == "classAdd":
+            classid = args["class_id"]
+            classname = "Class " + str(classid)
+            brackettype = "none"
+            round_type = 0
 
-    def class_heat_delete(self,args):
-        keys = self.getEventKeys()
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            removaltype = args["_eventName"]
-            if removaltype == "heatDelete":
-                endpoint = "/slots"
-                payload = {
-                    "eventid": keys["eventid"],
-                    "privatekey": keys["eventkey"],
-                    "heatid": args["heat_id"]
-                }
+        elif eventname == "classAlter":
+            classid = args["class_id"]
+            raceclass = self._rhapi.db.raceclass_by_id(classid)
+            classname = raceclass.name
+            brackettype = "check"
+            round_type = 0
+            if hasattr(raceclass, "round_type"):
+                round_type = raceclass.round_type
 
-            elif removaltype == "classDelete":
-                endpoint = "/class"
-                payload = {
-                    "eventid": keys["eventid"],
-                    "privatekey": keys["eventkey"],
-                    "classid": args["class_id"]
-                }
-            x = requests.delete(self.CL_API_ENDPOINT+endpoint, json = payload)  
+        elif eventname == "heatGenerate":
+            classid = args["output_class_id"]
+            raceclass = self._rhapi.db.raceclass_by_id(classid)
+            classname = raceclass.name if raceclass.name else "Class " + str(classid)
+            brackettype = self.get_brackettype(args)
+            round_type = 0
+            if hasattr(raceclass, "round_type"):
+                round_type = raceclass.round_type
 
-    def heat_listener(self,args):
-        keys = self.getEventKeys()
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
+        payload = build_class_payload(keys, classid, classname, brackettype, round_type)
+        self._api_client.post_class(payload)
 
-            db = self._rhapi.db
-            heat = db.heat_by_id(args["heat_id"])
-            groups = []
-            thisheat = self.getGroupingDetails(heat,db)
-            groups.append(thisheat)
+    def class_heat_delete(self, args):
+        keys = self._ready()
+        if not keys:
+            return
+        removaltype = args["_eventName"]
+        entity_id = args.get("heat_id") if removaltype == "heatDelete" else args.get("class_id")
+        endpoint, payload = build_delete_payload(keys, removaltype, entity_id)
+        if endpoint == "/slots":
+            self._api_client.delete_slots(payload)
+        elif endpoint == "/class":
+            self._api_client.delete_class(payload)
 
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "heats": groups
-            }
-            x = requests.post(self.CL_API_ENDPOINT+"/slots", json = payload)
-        else:
+    def heat_listener(self, args):
+        keys = self._ready()
+        if not keys:
             self.logger.warning("Cloud-Link Disabled")
+            return
 
-    def getGroupingDetails(self, heatobj, db):
-        heatname = str(heatobj.name)
+        db = self._rhapi.db
+        heat = db.heat_by_id(args["heat_id"])
+        thisheat = self._build_heat_detail(heat, db)
+        payload = build_heat_slots_payload(keys, [thisheat])
+        self._api_client.post_slots(payload)
+
+    def laptime_listener(self, args):
+        keys = self._ready()
+        if not keys:
+            return
+
+        raceid = args["race_id"]
+        savedracemeta = self._rhapi.db.race_by_id(raceid)
+        classid = savedracemeta.class_id
+        heatid = savedracemeta.heat_id
+        roundid = savedracemeta.round_id
+
+        raceclass = self._rhapi.db.raceclass_by_id(classid)
+        classname = raceclass.name
+
+        raceresults = self._rhapi.db.race_results(raceid)
+        primary_leaderboard = raceresults["meta"]["primary_leaderboard"]
+        filteredraceresults = raceresults[primary_leaderboard]
+
+        pilotruns = self._rhapi.db.pilotruns_by_race(raceid)
+        pilotlaps = []
+        for run in pilotruns:
+            laps = self._rhapi.db.laps_by_pilotrun(run.id)
+            for lap in laps:
+                if lap.deleted == False:
+                    pilotlaps.append({
+                        "id": lap.id,
+                        "race_id": lap.race_id,
+                        "pilotrace_id": lap.pilotrace_id,
+                        "pilot_id": lap.pilot_id,
+                        "lap_time_stamp": lap.lap_time_stamp,
+                        "lap_time": lap.lap_time,
+                        "lap_time_formatted": lap.lap_time_formatted,
+                        "deleted": lap.deleted,
+                    })
+
+        payload = build_laps_payload(keys, raceid, classid, classname, heatid,
+                                     roundid, primary_leaderboard,
+                                     filteredraceresults, pilotlaps)
+        if self._api_client.post_laps(payload):
+            self.logger.info("Laps sent to cloud")
+        else:
+            self.logger.error("Failed to send laps to cloud")
+
+    def results_listener(self, args):
+        keys = self._ready()
+        self.laptime_listener(args)
+
+        if not keys:
+            self.logger.warning("Cloud-Link Disabled")
+            return
+
+        savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
+        classid = savedracemeta.class_id
+        raceclass = self._rhapi.db.raceclass_by_id(classid)
+        classname = raceclass.name
+        ranking = raceclass.ranking
+
+        db = self._rhapi.db
+        fullresults = db.raceclass_results(classid)
+
+        if fullresults is None:
+            self.logger.info("No results available to resync")
+            return
+
+        meta = fullresults["meta"]
+        primary_leaderboard = meta["primary_leaderboard"]
+        filteredresults = fullresults[primary_leaderboard]
+
+        resultpayload = [
+            build_result_entry(classid, classname, result, primary_leaderboard)
+            for result in filteredresults
+        ]
+
+        payload = build_results_payload(keys, ranking, resultpayload)
+        if self._api_client.post_results(payload):
+            self.logger.info("Results sent to cloud")
+        else:
+            self.logger.error("Failed to send results to cloud")
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    def _build_heat_detail(self, heatobj, db):
+        """Build a heat detail dict with slot information."""
+        heatname = format_heat_name(heatobj.name, heatobj.id)
         heatid = str(heatobj.id)
 
-        #Set group ID
         group_id = 0
         if hasattr(heatobj, "group_id"):
             group_id = heatobj.group_id
 
-        #Default heat name if None
-        if heatname == "None" or heatname == "":
-            heatname = "Heat " + heatid
-
         heatclassid = str(heatobj.class_id)
-        racechannels = self.getRaceChannels()
+        racechannels = self.cldatamanager.get_frequencies_list()
 
         thisheat = {
             "classid": heatclassid,
@@ -198,15 +251,12 @@ class CloudLink():
             "heatname": heatname,
             "heatid": heatid,
             "group_id": group_id,
-            "slots":[]
+            "slots": [],
         }
         slots = db.slots_by_heat(heatid)
 
-        
         for slot in slots:
-
             if slot.node_index is not None:
-
                 channel = racechannels[slot.node_index] if slot.node_index < len(racechannels) else "0"
                 pilotcallsign = "-"
                 if slot.pilot_id != 0:
@@ -216,179 +266,15 @@ class CloudLink():
                 thisslot = {
                     "nodeindex": slot.node_index,
                     "channel": channel,
-                    "callsign": pilotcallsign
+                    "callsign": pilotcallsign,
                 }
-
-                if (thisslot["channel"] != "0" and thisslot["channel"] != "00"):
+                if thisslot["channel"] != "0" and thisslot["channel"] != "00":
                     thisheat["slots"].append(thisslot)
         return thisheat
 
-    def getRaceChannels(self):
-
-        frequencies = self._rhapi.race.frequencyset.frequencies
-        
-        freq = json.loads(frequencies)
-        bands = freq["b"]
-        channels = freq["c"]
-        racechannels = []
-        for i, band in enumerate(bands):
-            racechannel = "0"
-            if str(band) == 'None':
-                racechannels.insert(i,racechannel)
-            else:
-                channel = channels[i]
-                racechannel = str(band) + str(channel)
-                racechannels.insert(i,racechannel)
-        
-        return racechannels
-
-    def laptime_listener(self,args):
-        
-        #GET EVENT ID AND PRIVATE KEY
-        keys = self.getEventKeys()
-
-        if self.isConnected() and self.isEnabled() and keys["notempty"]:
-
-            #GET THE ID information
-            raceid = args["race_id"]
-
-            savedracemeta = self._rhapi.db.race_by_id(raceid)
-            classid = savedracemeta.class_id
-            heatid = savedracemeta.heat_id
-            roundid = savedracemeta.round_id
-
-            raceclass = self._rhapi.db.raceclass_by_id(classid)
-            classname = raceclass.name
-
-            #ROUND SUMMARY - SUMMARY OF THIS PARTICULAR ROUND
-            raceresults = self._rhapi.db.race_results(raceid)
-            primary_leaderboard = raceresults["meta"]["primary_leaderboard"]
-            filteredraceresults = raceresults[primary_leaderboard]
-
-            #PILOT RUNS BY RACEID
-            pilotruns = self._rhapi.db.pilotruns_by_race(raceid)
-
-            pilotlaps = []
-            for run in pilotruns:
-                runid = run.id
-
-                #LAPTIMES FOR INDIVIDUAL PILOT
-
-                laps = self._rhapi.db.laps_by_pilotrun(runid)
-                for lap in laps:
-
-                    if lap.deleted == False:
-                        thislap = {
-                            "id": lap.id,
-                            "race_id": lap.race_id,
-                            "pilotrace_id": lap.pilotrace_id,
-                            "pilot_id": lap.pilot_id,
-                            "lap_time_stamp": lap.lap_time_stamp,
-                            "lap_time": lap.lap_time,
-                            "lap_time_formatted": lap.lap_time_formatted,
-                            "deleted": lap.deleted
-                        }
-                        pilotlaps.append(thislap)
-
-            payload = {
-                "eventid": keys["eventid"],
-                "privatekey": keys["eventkey"],
-                "raceid": raceid,
-                "classid": classid,
-                "classname": classname,
-                "heatid": heatid,
-                "roundid": roundid,
-                "method_label": primary_leaderboard,
-                "roundresults": filteredraceresults,
-                "pilotlaps": pilotlaps
-
-            }
-
-            x = requests.post(self.CL_API_ENDPOINT+"/laps", json = payload)
-            self.logger.info("Laps sent to cloud")
-      
-    def results_listener(self,args):
-        
-        keys = self.getEventKeys()
-
-        self.laptime_listener(args)
-        savedracemeta = self._rhapi.db.race_by_id(args["race_id"])
-        classid = savedracemeta.class_id
-  
-        raceclass = self._rhapi.db.raceclass_by_id(classid)
-        classname = raceclass.name
-        ranking = raceclass.ranking
-        
-        if self.isConnected() and keys["notempty"]:
-
-            # Send entire ranking object without filtering
-            # Handle both None and False cases - use empty dict for consistent structure
-            rankpayload = ranking if (ranking is not None and ranking is not False) else {}
-            resultpayload = []     
-
-            db = self._rhapi.db
-            fullresults = db.raceclass_results(classid)
-
-            if fullresults != None:
-                meta = fullresults["meta"]
-                primary_leaderboard = meta["primary_leaderboard"]         
-                filteredresults = fullresults[primary_leaderboard]
-
-                for result in filteredresults:
-                    pilot = {
-                        "classid": classid,
-                        "classname": classname,
-                        "pilot_id": result["pilot_id"],
-                        "callsign": result["callsign"],
-                        "position": result["position"],
-                        "consecutives": result["consecutives"],
-                        "consecutives_base" : result["consecutives_base"],
-                        "laps": result["laps"],
-                        "total_time": result["total_time"],
-                        "average_lap": result["average_lap"],
-                        "fastest_lap": result["fastest_lap"],
-                        "method_label": primary_leaderboard,
-                        "fastest_lap_source": {
-                            "round": result["fastest_lap_source"]["round"],
-                            "heat": result["fastest_lap_source"]["heat"],
-                            "displayname": result["fastest_lap_source"]["displayname"],
-                        } if "fastest_lap_source" in result and result["fastest_lap_source"] is not None else None,
-                        "consecutives_source": {
-                            "round": result["consecutives_source"]["round"],
-                            "heat": result["consecutives_source"]["heat"],
-                            "displayname": result["consecutives_source"]["displayname"],
-                        } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
-                    }
-                    resultpayload.append(pilot)
-
-                payload = {
-                    "eventid": keys["eventid"],
-                    "privatekey": keys["eventkey"],
-                    "ranks": rankpayload,
-                    "results": resultpayload
-                }
-
-                x = requests.post(self.CL_API_ENDPOINT+"/v2/results", json = payload)
-                self.logger.info("Results sent to cloud")
-
-            else:
-                self.logger.info("No results available to resync")
-
-        else:
-            self.logger.warning("No internet connection available")
-
-    def isConnected(self):
-        try:
-            response = requests.get(self.CL_API_ENDPOINT, timeout=5)
-            return True
-        except requests.ConnectionError:
-            return False 
-    
     def isEnabled(self):
-        enabled = self._rhapi.db.option("cl-enable-plugin")
-
+        enabled = self._rhapi.db.option(OPT_ENABLED)
         if enabled == "1" and self.CL_FORCEUPDATE == False:
-
             return True
         else:
             if self.CL_FORCEUPDATE == True:
@@ -396,23 +282,18 @@ class CloudLink():
             return False
 
     def getEventKeys(self):
-
-        eventid = self._rhapi.db.option("cl-event-id")
-        eventkey = self._rhapi.db.option("cl-event-key")
+        eventid = self._rhapi.db.option(OPT_EVENT_ID)
+        eventkey = self._rhapi.db.option(OPT_EVENT_KEY)
         notempty = True if (eventid and eventkey) else False
-        keys = {
+        return {
             "notempty": notempty,
             "eventid": eventid,
-            "eventkey": eventkey
+            "eventkey": eventkey,
         }
-        return keys
 
-    def get_brackettype(self,args):
-        
-        brackettype = args["generator"]      
+    def get_brackettype(self, args):
+        brackettype = args["generator"]
         if brackettype == "Regulation_bracket__double_elimination" or brackettype == "Regulation_bracket__single_elimination":
             generate_args = args["generate_args"]
-            brackettype = brackettype+"_"+generate_args["standard"]    
+            brackettype = brackettype + "_" + generate_args["standard"]
         return brackettype
-
-    
