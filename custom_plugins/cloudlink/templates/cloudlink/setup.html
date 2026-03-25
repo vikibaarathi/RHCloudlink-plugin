@@ -261,6 +261,12 @@
         <i class="bi bi-broadcast cl-nav-icon"></i> Realtime Update
       </a>
     </li>
+    <li class="cl-sidebar-divider"></li>
+    <li>
+      <a href="#" onclick="showTab('settings', this)">
+        <i class="bi bi-gear cl-nav-icon"></i> Settings
+      </a>
+    </li>
   </ul>
 </aside>
 
@@ -481,6 +487,41 @@
     <p class="text-muted">Realtime sync status and controls will appear here.</p>
   </div>
 
+  <!-- ══ TAB: Settings ══ -->
+  <div id="tab-settings" style="display:none">
+    <h5 class="mb-1">Settings</h5>
+    <p class="text-muted small mb-4">Configure how Cloudlink behaves during your event.</p>
+
+    <div class="row g-4">
+      <!-- Col 1: Pilot Settings -->
+      <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="card-title mb-3">
+              <i class="bi bi-person-badge" style="color:var(--cl-orange)"></i> Pilot Data
+            </h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="setting-upload-pilot-image" onchange="onSettingChange()">
+              <label class="form-check-label" for="setting-upload-pilot-image">
+                Upload pilot image if available
+              </label>
+            </div>
+            <p class="text-muted small mt-2 mb-0">
+              When enabled, Cloudlink will send the pilot's photo URL to the cloud with race results, if one is available on the pilot profile.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: reserved for future settings -->
+      <div class="col-12 col-md-6">
+        <!-- future settings go here -->
+      </div>
+    </div>
+
+    <div id="settings-status" class="mt-3 small" style="display:none;"></div>
+  </div>
+
 </main>
 
 <script>
@@ -503,7 +544,7 @@
   // ── Tab switching ──────────────────────────────────────────────────────────
   function showTab(tabId, linkEl) {
     // hide all tabs
-    ['event-setup', 'bracket-config', 'realtime'].forEach(function(t) {
+    ['event-setup', 'bracket-config', 'realtime', 'settings'].forEach(function(t) {
       document.getElementById('tab-' + t).style.display = 'none';
     });
     // show selected
@@ -515,6 +556,50 @@
     if (linkEl) linkEl.classList.add('active');
     // close sidebar on mobile after selection
     closeSidebar();
+    // load settings when navigating to settings tab
+    if (tabId === 'settings') loadSettings();
+  }
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  function loadSettings() {
+    fetch('/cloudlink/settings')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          document.getElementById('setting-upload-pilot-image').checked = data.settings.upload_pilot_image;
+        }
+      })
+      .catch(function() { showSettingsStatus('Could not load settings.', true); });
+  }
+
+  function onSettingChange() {
+    var payload = {
+      upload_pilot_image: document.getElementById('setting-upload-pilot-image').checked
+    };
+    fetch('/cloudlink/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showSettingsStatus('✓ Saved', false);
+          setTimeout(function() {
+            document.getElementById('settings-status').style.display = 'none';
+          }, 2000);
+        } else {
+          showSettingsStatus('Failed to save: ' + (data.error || 'unknown error'), true);
+        }
+      })
+      .catch(function() { showSettingsStatus('Network error — setting not saved.', true); });
+  }
+
+  function showSettingsStatus(msg, isError) {
+    var el = document.getElementById('settings-status');
+    el.textContent = msg;
+    el.style.color = isError ? '#dc3545' : '#198754';
+    el.style.display = 'block';
   }
 
   // ── Drag & Drop ────────────────────────────────────────────────────────────

@@ -57,11 +57,13 @@ class CloudLink():
         cl_enableplugin = UIField(name='cl-enable-plugin', label='Enable Cloud Link Plugin', field_type=UIFieldType.CHECKBOX, desc="Enable or disable this plugin.")
         cl_eventid  = UIField(name='cl-event-id',  label='Cloud Link Event ID',          field_type=UIFieldType.TEXT, desc="Event ID from rhcloudlink.com/register or the in-timer setup page.")
         cl_eventkey = UIField(name='cl-event-key', label='Cloud Link Event Private Key', field_type=UIFieldType.TEXT, desc="Private key provided after registration. Keep this safe.")
+        cl_upload_pilot_image = UIField(name='cl-upload-pilot-image', label='Upload Pilot Image', field_type=UIFieldType.CHECKBOX, desc="Send pilot photo URL to CloudLink when available.")
 
         fields = self._rhapi.fields
-        fields.register_option(cl_enableplugin, "cloud-link")
-        fields.register_option(cl_eventid,      "cloud-link")
-        fields.register_option(cl_eventkey,     "cloud-link")
+        fields.register_option(cl_enableplugin,        "cloud-link")
+        fields.register_option(cl_eventid,             "cloud-link")
+        fields.register_option(cl_eventkey,            "cloud-link")
+        fields.register_option(cl_upload_pilot_image,  "cloud-link")
 
         # Register the Flask blueprint for the in-timer registration UI
         try:
@@ -71,6 +73,22 @@ class CloudLink():
             self.logger.info("CloudLink: registration blueprint registered at /cloudlink/setup")
         except Exception as e:
             self.logger.error(f"CloudLink: failed to register blueprint: {e}")
+
+    def get_pilot_photo_url(self, pilot_id):
+        """
+        Returns the pilot's photo URL if the upload-pilot-image setting is ON
+        and the pilot has a photo attribute set.
+        Reads PilotDetailPhotoURL set by MultiGP Toolkit from profilePictureUrl.
+        """
+        if self._rhapi.db.option("cl-upload-pilot-image") != "1":
+            return None
+        try:
+            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'PilotDetailPhotoURL')
+            if photo_url and str(photo_url).strip():
+                return str(photo_url).strip()
+        except Exception:
+            pass
+        return None
 
     def resync_new(self, args):
      
@@ -359,6 +377,11 @@ class CloudLink():
                             "displayname": result["consecutives_source"]["displayname"],
                         } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
                     }
+
+                    photo_url = self.get_pilot_photo_url(result["pilot_id"])
+                    if photo_url:
+                        pilot["photo_url"] = photo_url
+
                     resultpayload.append(pilot)
 
                 payload = {
