@@ -83,8 +83,7 @@ class CloudLink():
         if self._rhapi.db.option("cl-upload-pilot-image") != "1":
             return None
         try:
-            # TODO: Replace 'mgp_url' with the confirmed MultiGP Toolkit attribute name
-            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'mgp_url')
+            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'PilotDetailPhotoURL')
             if photo_url and str(photo_url).strip():
                 return str(photo_url).strip()
         except Exception:

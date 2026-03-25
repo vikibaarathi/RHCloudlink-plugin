@@ -73,12 +73,12 @@ class ClDataManager():
     def _get_pilot_photo_url(self, pilot_id):
         """
         Returns the pilot's photo URL if the upload-pilot-image setting is ON.
-        TODO: Replace 'mgp_url' with the confirmed MultiGP Toolkit attribute name.
+        Reads the PilotDetailPhotoURL attribute set by MultiGP Toolkit.
         """
         if self._rhapi.db.option("cl-upload-pilot-image") != "1":
             return None
         try:
-            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'mgp_url')
+            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'PilotDetailPhotoURL')
             if photo_url and str(photo_url).strip():
                 return str(photo_url).strip()
         except Exception:
