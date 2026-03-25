@@ -78,7 +78,7 @@ class CloudLink():
         """
         Returns the pilot's photo URL if the upload-pilot-image setting is ON
         and the pilot has a photo attribute set.
-        Attribute name TBC — will be confirmed and updated tonight.
+        Reads PilotDetailPhotoURL set by MultiGP Toolkit from profilePictureUrl.
         """
         if self._rhapi.db.option("cl-upload-pilot-image") != "1":
             return None
