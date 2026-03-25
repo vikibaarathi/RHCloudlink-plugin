@@ -70,6 +70,21 @@ class ClDataManager():
 
         return clslist
     
+    def _get_pilot_photo_url(self, pilot_id):
+        """
+        Returns the pilot's photo URL if the upload-pilot-image setting is ON.
+        TODO: Replace 'mgp_url' with the confirmed MultiGP Toolkit attribute name.
+        """
+        if self._rhapi.db.option("cl-upload-pilot-image") != "1":
+            return None
+        try:
+            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'mgp_url')
+            if photo_url and str(photo_url).strip():
+                return str(photo_url).strip()
+        except Exception:
+            pass
+        return None
+
     def get_class_results(self):
         clss = self._rhapi.db.raceclasses
         overallresults = []
@@ -107,8 +122,12 @@ class ClDataManager():
                             "heat": result["consecutives_source"]["heat"],
                             "displayname": result["consecutives_source"]["displayname"],
                         } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
-                        
                     }
+
+                    photo_url = self._get_pilot_photo_url(result["pilot_id"])
+                    if photo_url:
+                        resultobj["photo_url"] = photo_url
+
                     finalresults.append(resultobj)
 
             thisclassresults = {

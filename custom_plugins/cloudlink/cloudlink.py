@@ -74,6 +74,23 @@ class CloudLink():
         except Exception as e:
             self.logger.error(f"CloudLink: failed to register blueprint: {e}")
 
+    def get_pilot_photo_url(self, pilot_id):
+        """
+        Returns the pilot's photo URL if the upload-pilot-image setting is ON
+        and the pilot has a photo attribute set.
+        Attribute name TBC — will be confirmed and updated tonight.
+        """
+        if self._rhapi.db.option("cl-upload-pilot-image") != "1":
+            return None
+        try:
+            # TODO: Replace 'mgp_url' with the confirmed MultiGP Toolkit attribute name
+            photo_url = self._rhapi.db.pilot_attribute_value(pilot_id, 'mgp_url')
+            if photo_url and str(photo_url).strip():
+                return str(photo_url).strip()
+        except Exception:
+            pass
+        return None
+
     def resync_new(self, args):
      
         keys = self.getEventKeys()
@@ -361,6 +378,11 @@ class CloudLink():
                             "displayname": result["consecutives_source"]["displayname"],
                         } if "consecutives_source" in result and result["consecutives_source"] is not None else None,
                     }
+
+                    photo_url = self.get_pilot_photo_url(result["pilot_id"])
+                    if photo_url:
+                        pilot["photo_url"] = photo_url
+
                     resultpayload.append(pilot)
 
                 payload = {
