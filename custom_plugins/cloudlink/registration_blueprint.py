@@ -305,4 +305,33 @@ def create_registration_blueprint(rhapi):
         logger.info('[CloudLink] Keys cleared')
         return jsonify({'success': True})
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # GET /cloudlink/settings — return current settings as JSON
+    # ──────────────────────────────────────────────────────────────────────────
+    @bp.route('/settings', methods=['GET'])
+    def get_settings():
+        upload_pilot_image = rhapi.db.option('cl-upload-pilot-image') == '1'
+        return jsonify({
+            'success': True,
+            'settings': {
+                'upload_pilot_image': upload_pilot_image
+            }
+        })
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # POST /cloudlink/settings — save settings
+    # ──────────────────────────────────────────────────────────────────────────
+    @bp.route('/settings', methods=['POST'])
+    def save_settings():
+        try:
+            data = request.get_json(force=True) or {}
+            if 'upload_pilot_image' in data:
+                val = '1' if data['upload_pilot_image'] else '0'
+                rhapi.db.option_set('cl-upload-pilot-image', val)
+                logger.info(f'[CloudLink] upload_pilot_image set to {val}')
+            return jsonify({'success': True})
+        except Exception as e:
+            logger.error(f'[CloudLink] Settings save error: {e}')
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     return bp

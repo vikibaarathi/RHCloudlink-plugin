@@ -57,11 +57,13 @@ class CloudLink():
         cl_enableplugin = UIField(name='cl-enable-plugin', label='Enable Cloud Link Plugin', field_type=UIFieldType.CHECKBOX, desc="Enable or disable this plugin.")
         cl_eventid  = UIField(name='cl-event-id',  label='Cloud Link Event ID',          field_type=UIFieldType.TEXT, desc="Event ID from rhcloudlink.com/register or the in-timer setup page.")
         cl_eventkey = UIField(name='cl-event-key', label='Cloud Link Event Private Key', field_type=UIFieldType.TEXT, desc="Private key provided after registration. Keep this safe.")
+        cl_upload_pilot_image = UIField(name='cl-upload-pilot-image', label='Upload Pilot Image', field_type=UIFieldType.CHECKBOX, desc="Send pilot photo URL to CloudLink when available.")
 
         fields = self._rhapi.fields
-        fields.register_option(cl_enableplugin, "cloud-link")
-        fields.register_option(cl_eventid,      "cloud-link")
-        fields.register_option(cl_eventkey,     "cloud-link")
+        fields.register_option(cl_enableplugin,        "cloud-link")
+        fields.register_option(cl_eventid,             "cloud-link")
+        fields.register_option(cl_eventkey,            "cloud-link")
+        fields.register_option(cl_upload_pilot_image,  "cloud-link")
 
         # Register the Flask blueprint for the in-timer registration UI
         try:
