@@ -10,7 +10,7 @@ except ImportError:
     _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
 
 class CloudLink():
-    CL_VERSION = "1.5.1"
+    CL_VERSION = "1.5.2"
     CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
@@ -65,14 +65,6 @@ class CloudLink():
         fields.register_option(cl_eventkey,            "cloud-link")
         fields.register_option(cl_upload_pilot_image,  "cloud-link")
 
-        # Register the Flask blueprint for the in-timer registration UI
-        try:
-            from .registration_blueprint import create_registration_blueprint
-            bp = create_registration_blueprint(self._rhapi)
-            self._rhapi.ui.blueprint_add(bp)
-            self.logger.info("CloudLink: registration blueprint registered at /cloudlink/setup")
-        except Exception as e:
-            self.logger.error(f"CloudLink: failed to register blueprint: {e}")
 
     def get_pilot_photo_url(self, pilot_id):
         """
