@@ -41,6 +41,7 @@ def initialize(rhapi):
         api_endpoint=cloudlink.CL_API_ENDPOINT,
     )
 
+    rhapi.events.on(Evt.HEAT_SET, live_sync.on_heat_set, priority=200)
     rhapi.events.on(Evt.RACE_START, live_sync.on_race_start, priority=200)
     rhapi.events.on(Evt.RACE_LAP_RECORDED, live_sync.on_lap_recorded, priority=200)
     rhapi.events.on(Evt.RACE_STOP, live_sync.on_race_stop, priority=200)

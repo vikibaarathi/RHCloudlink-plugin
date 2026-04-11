@@ -57,12 +57,10 @@ class CloudLink():
         cl_enableplugin = UIField(name='cl-enable-plugin', label='Enable Cloud Link Plugin', field_type=UIFieldType.CHECKBOX, desc="Enable or disable this plugin.")
         cl_eventid  = UIField(name='cl-event-id',  label='Cloud Link Event ID',          field_type=UIFieldType.TEXT, desc="Event ID from rhcloudlink.com/register or the in-timer setup page.")
         cl_eventkey = UIField(name='cl-event-key', label='Cloud Link Event Private Key', field_type=UIFieldType.TEXT, desc="Private key provided after registration. Keep this safe.")
-        cl_livesync = UIField(name='cl-live-sync', label='Enable Live Lap Streaming', field_type=UIFieldType.CHECKBOX, desc="Stream lap times to CloudLink in real time during active races. Enables the live leaderboard on the CloudLink viewer.")
         fields = self._rhapi.fields
         fields.register_option(cl_enableplugin,        "cloud-link")
         fields.register_option(cl_eventid,             "cloud-link")
         fields.register_option(cl_eventkey,            "cloud-link")
-        fields.register_option(cl_livesync,            "cloud-link")
 
 
     def get_pilot_photo_url(self, pilot_id):

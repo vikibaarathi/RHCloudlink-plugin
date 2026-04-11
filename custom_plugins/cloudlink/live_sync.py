@@ -49,8 +49,11 @@ class LiveSync:
             return
 
         race = self._rhapi.race
-        heat_id = race.current_heat
+        heat_id = race.heat
         heat_data = self._rhapi.db.heat_by_id(heat_id)
+        heat_name = heat_data.display_name if heat_data and hasattr(heat_data, 'display_name') else (
+            heat_data.name if heat_data and hasattr(heat_data, 'name') else f"Heat {heat_id}"
+        )
         class_id = heat_data.class_id if heat_data else 0
 
         round_id = self._resolve_round_id(heat_id)
@@ -61,6 +64,7 @@ class LiveSync:
             "privatekey": keys["eventkey"],
             "status": "racing",
             "heatid": heat_id,
+            "heatname": heat_name,
             "classid": class_id,
             "roundid": round_id,
             "pilots": pilots,
@@ -94,7 +98,7 @@ class LiveSync:
         callsign = self._resolve_callsign(pilot_id)
 
         race = self._rhapi.race
-        heat_id = race.current_heat
+        heat_id = race.heat
         heat_data = self._rhapi.db.heat_by_id(heat_id)
         class_id = heat_data.class_id if heat_data else 0
         round_id = self._resolve_round_id(heat_id)
@@ -124,6 +128,41 @@ class LiveSync:
             getattr(lap, "lap_time_formatted", "?"),
         )
 
+    def on_heat_set(self, args):
+        """Handle Evt.HEAT_SET — broadcast the newly selected heat to viewers."""
+        if not self._is_ready():
+            return
+
+        keys = self._get_keys()
+        if not keys["notempty"]:
+            return
+
+        heat_id = args.get("heat_id")
+        if heat_id is None:
+            return
+
+        heat_data = self._rhapi.db.heat_by_id(heat_id)
+        heat_name = heat_data.display_name if heat_data and hasattr(heat_data, 'display_name') else (
+            heat_data.name if heat_data and hasattr(heat_data, 'name') else f"Heat {heat_id}"
+        )
+        class_id = heat_data.class_id if heat_data else 0
+        round_id = self._resolve_round_id(heat_id)
+        pilots = self._build_pilot_list(heat_id, self._rhapi.race)
+
+        payload = {
+            "eventid": keys["eventid"],
+            "privatekey": keys["eventkey"],
+            "status": "heat_set",
+            "heatid": heat_id,
+            "heatname": heat_name,
+            "classid": class_id,
+            "roundid": round_id,
+            "pilots": pilots,
+        }
+
+        self._post(self.LIVE_STATUS_PATH, payload)
+        self.logger.info("Live heat set broadcast — heat %s (%s)", heat_id, heat_name)
+
     def on_race_stop(self, args):
         """Handle Evt.RACE_STOP — signal that the race has ended."""
         if not self._is_ready():
@@ -134,7 +173,7 @@ class LiveSync:
             return
 
         race = self._rhapi.race
-        heat_id = race.current_heat
+        heat_id = race.heat
         heat_data = self._rhapi.db.heat_by_id(heat_id)
         class_id = heat_data.class_id if heat_data else 0
         round_id = self._resolve_round_id(heat_id)
