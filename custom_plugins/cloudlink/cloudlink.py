@@ -10,14 +10,14 @@ except ImportError:
     _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
 
 class CloudLink():
-    CL_VERSION = "1.5.2"
+    CL_VERSION = "1.5.3"
     CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
     def __init__(self,rhapi):
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
-        self.cldatamanger = ClDataManager(self._rhapi)
+        self.cldatamanager = ClDataManager(self._rhapi)
         
     def init_plugin(self,args):
 
@@ -32,16 +32,19 @@ class CloudLink():
         elif isConnected is False:
             self.logger.warning("Cloudlink cannot connect to internet. Check connection and try again.")
         else:
-            x = requests.get(self.CL_API_ENDPOINT+'/healthcheck')
-            respond = x.json()
-            if self.CL_VERSION != respond["version"]:
-                if respond["softupgrade"] == True:
-                    self.logger.warning("New version of Cloud Link is available. Please consider upgrading.")
+            try:
+                x = requests.get(self.CL_API_ENDPOINT+'/healthcheck', timeout=5)
+                respond = x.json()
+                if self.CL_VERSION != respond["version"]:
+                    if respond["softupgrade"] == True:
+                        self.logger.warning("New version of Cloud Link is available. Please consider upgrading.")
 
-                if respond["forceupgrade"] == True:
-                    self.logger.warning("Cloudlink plugin needs to bee updated. ")
-                    self.CL_FORCEUPDATE = True
-            self.logger.info("Cloudlink is ready")
+                    if respond["forceupgrade"] == True:
+                        self.logger.warning("Cloudlink plugin needs to be updated.")
+                        self.CL_FORCEUPDATE = True
+                self.logger.info("Cloudlink is ready")
+            except Exception as e:
+                self.logger.warning("Cloudlink healthcheck failed: %s", e)
         
         self.init_ui(args)
         
@@ -83,7 +86,7 @@ class CloudLink():
      
         keys = self.getEventKeys()
         if self.isConnected() and self.isEnabled() and keys["notempty"]:
-            data = self.cldatamanger.get_everything()
+            data = self.cldatamanager.get_everything()
             ui = self._rhapi.ui
             ui.message_notify("Initializing resyncronization protocol...")
             payload = {
