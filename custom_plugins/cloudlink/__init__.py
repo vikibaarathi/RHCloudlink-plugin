@@ -6,11 +6,22 @@ from .live_sync import LiveSync
 def initialize(rhapi):
     cloudlink = CloudLink(rhapi)
 
-    # Register the Flask blueprint early, before the app handles any requests
+    # Register the Flask blueprint for /cloudlink/* routes
     try:
         from .registration_blueprint import create_registration_blueprint
         bp = create_registration_blueprint(rhapi)
-        rhapi.ui.blueprint_add(bp)
+        try:
+            rhapi.ui.blueprint_add(bp)
+        except AssertionError:
+            # Flask 3.x raises AssertionError if a request was already handled.
+            # Temporarily clear the flag so the blueprint can still register.
+            app = rhapi._racecontext.rhui._app
+            app._got_first_request = False
+            try:
+                app.register_blueprint(bp)
+            finally:
+                app._got_first_request = True
+            logging.getLogger(__name__).info("CloudLink: blueprint registered (late)")
     except Exception as e:
         logging.getLogger(__name__).error(f"CloudLink: failed to register blueprint: {e}")
 
