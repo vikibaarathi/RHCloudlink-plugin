@@ -311,10 +311,12 @@ def create_registration_blueprint(rhapi):
     @bp.route('/settings', methods=['GET'])
     def get_settings():
         upload_pilot_image = rhapi.db.option('cl-upload-pilot-image') == '1'
+        live_sync = rhapi.db.option('cl-live-sync') == '1'
         return jsonify({
             'success': True,
             'settings': {
-                'upload_pilot_image': upload_pilot_image
+                'upload_pilot_image': upload_pilot_image,
+                'live_sync': live_sync
             }
         })
 
@@ -329,9 +331,37 @@ def create_registration_blueprint(rhapi):
                 val = '1' if data['upload_pilot_image'] else '0'
                 rhapi.db.option_set('cl-upload-pilot-image', val)
                 logger.info(f'[CloudLink] upload_pilot_image set to {val}')
+            if 'live_sync' in data:
+                val = '1' if data['live_sync'] else '0'
+                rhapi.db.option_set('cl-live-sync', val)
+                logger.info(f'[CloudLink] live_sync set to {val}')
+
+                # Update the cloud event record so the Angular UI knows
+                event_id = rhapi.db.option('cl-event-id')
+                event_key = rhapi.db.option('cl-event-key')
+                if event_id and event_key:
+                    try:
+                        requests.patch(
+                            f'{CL_API_ENDPOINT}/event/{event_id}',
+                            json={'live_sync_enabled': data['live_sync']},
+                            headers={'X-Private-Key': event_key},
+                            timeout=API_TIMEOUT_SHORT
+                        )
+                        logger.info(f'[CloudLink] Cloud event live_sync_enabled={data["live_sync"]}')
+                    except Exception as e:
+                        logger.warning(f'[CloudLink] Failed to update cloud event live_sync flag: {e}')
+
             return jsonify({'success': True})
         except Exception as e:
             logger.error(f'[CloudLink] Settings save error: {e}')
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # GET /cloudlink/live-enabled — public flag for Angular UI to check
+    # ──────────────────────────────────────────────────────────────────────────
+    @bp.route('/live-enabled', methods=['GET'])
+    def live_enabled():
+        enabled = rhapi.db.option('cl-live-sync') == '1'
+        return jsonify({'live_sync_enabled': enabled})
 
     return bp

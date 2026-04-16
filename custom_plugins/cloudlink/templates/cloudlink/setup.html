@@ -257,7 +257,7 @@
     <li class="cl-sidebar-divider"></li>
     <li class="cl-sidebar-label">Live</li>
     <li>
-      <a href="#" class="cl-nav-disabled" onclick="return false;">
+      <a href="#" onclick="showTab('realtime', this)">
         <i class="bi bi-broadcast cl-nav-icon"></i> Realtime Update
       </a>
     </li>
@@ -483,8 +483,32 @@
 
   <!-- ══ TAB: Realtime Update ══ -->
   <div id="tab-realtime" style="display:none">
-    <h5 class="mb-2">Realtime Update</h5>
-    <p class="text-muted">Realtime sync status and controls will appear here.</p>
+    <h5 class="mb-1">Realtime Update</h5>
+    <p class="text-muted small mb-4">Control live lap streaming to the CloudLink viewer during active races.</p>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="card-title mb-3">
+              <i class="bi bi-broadcast" style="color:var(--cl-orange)"></i> Live Lap Streaming
+            </h6>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="setting-live-sync" onchange="onSettingChange()">
+              <label class="form-check-label" for="setting-live-sync">
+                Enable live lap streaming
+              </label>
+            </div>
+            <p class="text-muted small mt-2 mb-0">
+              When enabled, lap times are streamed to CloudLink in real time during active races.
+              This powers the <strong>Live</strong> tab on the CloudLink viewer for remote spectators and commentators.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="realtime-status" class="mt-3 small" style="display:none;"></div>
   </div>
 
   <!-- ══ TAB: Settings ══ -->
@@ -556,8 +580,8 @@
     if (linkEl) linkEl.classList.add('active');
     // close sidebar on mobile after selection
     closeSidebar();
-    // load settings when navigating to settings tab
-    if (tabId === 'settings') loadSettings();
+    // load settings when navigating to settings or realtime tab
+    if (tabId === 'settings' || tabId === 'realtime') loadSettings();
   }
 
   // ── Settings ───────────────────────────────────────────────────────────────
@@ -567,6 +591,7 @@
       .then(function(data) {
         if (data.success) {
           document.getElementById('setting-upload-pilot-image').checked = data.settings.upload_pilot_image;
+          document.getElementById('setting-live-sync').checked = data.settings.live_sync;
         }
       })
       .catch(function() { showSettingsStatus('Could not load settings.', true); });
@@ -574,7 +599,8 @@
 
   function onSettingChange() {
     var payload = {
-      upload_pilot_image: document.getElementById('setting-upload-pilot-image').checked
+      upload_pilot_image: document.getElementById('setting-upload-pilot-image').checked,
+      live_sync: document.getElementById('setting-live-sync').checked
     };
     fetch('/cloudlink/settings', {
       method: 'POST',
