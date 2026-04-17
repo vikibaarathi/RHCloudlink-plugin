@@ -10,7 +10,7 @@ except ImportError:
     _CONFIGURED_ENDPOINT = "https://api.rhcloudlink.com"
 
 class CloudLink():
-    CL_VERSION = "1.5.3"
+    CL_VERSION = "1.5.4"
     CL_API_ENDPOINT = _CONFIGURED_ENDPOINT
     CL_FORCEUPDATE = False
 
