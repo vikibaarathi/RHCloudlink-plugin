@@ -506,6 +506,33 @@
           </div>
         </div>
       </div>
+
+      <div class="col-12 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="card-title mb-3">
+              <i class="bi bi-speedometer2" style="color:var(--cl-orange)"></i> Top Speed
+            </h6>
+            <div class="mb-3">
+              <label class="form-label small mb-1" for="setting-split-event">Split event name</label>
+              <input type="text" class="form-control form-control-sm" id="setting-split-event" onchange="onSettingChange()" placeholder="cl_split">
+              <p class="text-muted small mt-1 mb-0">
+                Must exactly match the <strong>Event</strong> key on your secondary/split timer. Changing this takes effect after a server restart.
+              </p>
+            </div>
+            <div class="mb-1">
+              <label class="form-label small mb-1" for="setting-speed-unit">Speed unit</label>
+              <select class="form-select form-select-sm" id="setting-speed-unit" onchange="onSettingChange()">
+                <option value="kmh">km/h</option>
+                <option value="mph">mph</option>
+              </select>
+              <p class="text-muted small mt-1 mb-0">
+                Display label only — it does <strong>not</strong> convert. Match how you set <strong>Distance</strong> on the timer (meters&times;3.6 &rarr; km/h, feet&divide;1.466 &rarr; mph).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="realtime-status" class="mt-3 small" style="display:none;"></div>
@@ -592,6 +619,8 @@
         if (data.success) {
           document.getElementById('setting-upload-pilot-image').checked = data.settings.upload_pilot_image;
           document.getElementById('setting-live-sync').checked = data.settings.live_sync;
+          document.getElementById('setting-split-event').value = data.settings.split_event || 'cl_split';
+          document.getElementById('setting-speed-unit').value = data.settings.speed_unit || 'kmh';
         }
       })
       .catch(function() { showSettingsStatus('Could not load settings.', true); });
@@ -600,7 +629,9 @@
   function onSettingChange() {
     var payload = {
       upload_pilot_image: document.getElementById('setting-upload-pilot-image').checked,
-      live_sync: document.getElementById('setting-live-sync').checked
+      live_sync: document.getElementById('setting-live-sync').checked,
+      split_event: document.getElementById('setting-split-event').value,
+      speed_unit: document.getElementById('setting-speed-unit').value
     };
     fetch('/cloudlink/settings', {
       method: 'POST',

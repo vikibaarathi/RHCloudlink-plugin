@@ -19,21 +19,24 @@ class LiveSync:
 
     LIVE_LAP_PATH = "/live/lap"
     LIVE_STATUS_PATH = "/live/race-status"
+    LIVE_TOPSPEED_PATH = "/live/top-speed"
     REQUEST_TIMEOUT_SECS = 2
 
-    def __init__(self, rhapi, get_keys_fn, is_ready_fn, api_endpoint):
+    def __init__(self, rhapi, get_keys_fn, is_ready_fn, api_endpoint, get_unit_fn=None):
         """
         Args:
             rhapi:          RotorHazard plugin API instance.
             get_keys_fn:    Callable returning {"notempty": bool, "eventid": str, "eventkey": str}.
             is_ready_fn:    Callable returning True when the plugin is connected and enabled.
             api_endpoint:   Base URL of the CloudLink API (e.g. "https://api.rhcloudlink.com").
+            get_unit_fn:    Optional callable returning the speed-unit label ("kmh" or "mph").
         """
         self.logger = logging.getLogger(__name__)
         self._rhapi = rhapi
         self._get_keys = get_keys_fn
         self._is_ready = is_ready_fn
         self._api_endpoint = api_endpoint
+        self._get_unit = get_unit_fn
 
     # ------------------------------------------------------------------
     # Event handlers (registered in __init__.py)
@@ -127,6 +130,45 @@ class LiveSync:
             getattr(lap, "lap_number", "?"),
             getattr(lap, "lap_time_formatted", "?"),
         )
+
+    def on_split_recorded(self, args):
+        """Handle a split-timer pass — push the pilot's speed to CloudLink.
+
+        Fired by the custom event name configured on the secondary timer
+        (default ``cl_split``).  The payload is the ClusterNodeSet ``split_data``
+        dict, whose ``split_speed`` is ``None`` when no distance is configured on
+        that gate — in which case there is nothing to report and we skip.
+        """
+        if not self._is_ready():
+            return
+
+        keys = self._get_keys()
+        if not keys["notempty"]:
+            return
+
+        speed = args.get("split_speed")
+        if speed is None:
+            return
+
+        pilot_id = args.get("pilot_id")
+        callsign = self._resolve_callsign(pilot_id)
+
+        heat_data = self._rhapi.db.heat_by_id(self._rhapi.race.heat)
+        class_id = heat_data.class_id if heat_data else 0
+        unit = self._get_unit() if self._get_unit else "kmh"
+
+        payload = {
+            "eventid": keys["eventid"],
+            "privatekey": keys["eventkey"],
+            "classid": class_id,
+            "pilot_id": pilot_id,
+            "callsign": callsign,
+            "speed": speed,
+            "unit": unit,
+        }
+
+        self._post(self.LIVE_TOPSPEED_PATH, payload)
+        self.logger.debug("Top speed sent — pilot %s: %s %s", callsign, speed, unit)
 
     def on_heat_set(self, args):
         """Handle Evt.HEAT_SET — broadcast the newly selected heat to viewers."""

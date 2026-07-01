@@ -312,11 +312,16 @@ def create_registration_blueprint(rhapi):
     def get_settings():
         upload_pilot_image = rhapi.db.option('cl-upload-pilot-image') == '1'
         live_sync = rhapi.db.option('cl-live-sync') == '1'
+        split_event = rhapi.db.option('cl-split-event') or 'cl_split'
+        speed_unit = rhapi.db.option('cl-speed-unit')
+        speed_unit = speed_unit if speed_unit in ('kmh', 'mph') else 'kmh'
         return jsonify({
             'success': True,
             'settings': {
                 'upload_pilot_image': upload_pilot_image,
-                'live_sync': live_sync
+                'live_sync': live_sync,
+                'split_event': split_event,
+                'speed_unit': speed_unit
             }
         })
 
@@ -350,6 +355,18 @@ def create_registration_blueprint(rhapi):
                         logger.info(f'[CloudLink] Cloud event live_sync_enabled={data["live_sync"]}')
                     except Exception as e:
                         logger.warning(f'[CloudLink] Failed to update cloud event live_sync flag: {e}')
+
+            if 'split_event' in data:
+                # Event name the plugin listens on for split-timer speed.
+                # Must match the secondary timer's `Event` key. Takes effect
+                # on next server restart (event handlers bind at startup).
+                val = (data['split_event'] or '').strip() or 'cl_split'
+                rhapi.db.option_set('cl-split-event', val)
+                logger.info(f'[CloudLink] split_event set to {val}')
+            if 'speed_unit' in data:
+                val = data['speed_unit'] if data['speed_unit'] in ('kmh', 'mph') else 'kmh'
+                rhapi.db.option_set('cl-speed-unit', val)
+                logger.info(f'[CloudLink] speed_unit set to {val}')
 
             return jsonify({'success': True})
         except Exception as e:

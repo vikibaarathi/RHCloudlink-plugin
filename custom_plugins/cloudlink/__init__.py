@@ -45,15 +45,27 @@ def initialize(rhapi):
             return False
         return rhapi.db.option("cl-live-sync") == "1"
 
+    def get_speed_unit():
+        """Speed-unit label for top-speed callouts — display only, defaults to km/h."""
+        unit = rhapi.db.option("cl-speed-unit")
+        return unit if unit in ("kmh", "mph") else "kmh"
+
     live_sync = LiveSync(
         rhapi=rhapi,
         get_keys_fn=cloudlink.getEventKeys,
         is_ready_fn=is_live_sync_ready,
         api_endpoint=cloudlink.CL_API_ENDPOINT,
+        get_unit_fn=get_speed_unit,
     )
 
     rhapi.events.on(Evt.HEAT_SET, live_sync.on_heat_set, priority=200)
     rhapi.events.on(Evt.RACE_START, live_sync.on_race_start, priority=200)
     rhapi.events.on(Evt.RACE_LAP_RECORDED, live_sync.on_lap_recorded, priority=200)
     rhapi.events.on(Evt.RACE_STOP, live_sync.on_race_stop, priority=200)
+
+    # Split-timer top speed. The event name is configurable (setup page) and
+    # must match the `Event` key set on the secondary/split timer. Bound once
+    # at startup, so changing it needs a server restart.
+    split_event = rhapi.db.option("cl-split-event") or "cl_split"
+    rhapi.events.on(split_event, live_sync.on_split_recorded, priority=200)
 
